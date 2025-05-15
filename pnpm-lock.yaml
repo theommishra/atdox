@@ -150,6 +150,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
 
+  packages/db: {}
+
   packages/eslint-config:
     devDependencies:
       '@eslint/js':
