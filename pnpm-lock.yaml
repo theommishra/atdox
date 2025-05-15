@@ -150,7 +150,18 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
 
-  packages/db: {}
+  packages/db:
+    dependencies:
+      '@prisma/client':
+        specifier: 6.8.0
+        version: 6.8.0(prisma@6.8.0(typescript@5.8.2))(typescript@5.8.2)
+      prisma:
+        specifier: ^6.8.0
+        version: 6.8.0(typescript@5.8.2)
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
 
   packages/eslint-config:
     devDependencies:
@@ -573,6 +584,36 @@ packages:
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
+
+  '@prisma/client@6.8.0':
+    resolution: {integrity: sha512-t29bmo2VUOBIlinu0tRHXhj3r8+IwA7azetNOGqK9sQDVq/zwbSWq075P2kDjLhxpIe0L/g06bI22c307Tt4vA==}
+    engines: {node: '>=18.18'}
+    peerDependencies:
+      prisma: '*'
+      typescript: '>=5.1.0'
+    peerDependenciesMeta:
+      prisma:
+        optional: true
+      typescript:
+        optional: true
+
+  '@prisma/config@6.8.0':
+    resolution: {integrity: sha512-Bl1SCz6XGa7InatzFBLpY2Ni3anJhPbDHz5RPmmdjaVVnK9Fo1oA4T1FInKLsabn0qjQE6iwCUe6OMu5Up1iGw==}
+
+  '@prisma/debug@6.8.0':
+    resolution: {integrity: sha512-QgI80ZgD5xWI+DzNOw2LkZQpE2ZBV9NiTkPqcOTAWe3+sLagGGau4Sp18lrYsemEqzfYD6Zl1YJkCO4JFmywLg==}
+
+  '@prisma/engines-version@6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e':
+    resolution: {integrity: sha512-Rkik9lMyHpFNGaLpPF3H5q5TQTkm/aE7DsGM5m92FZTvWQsvmi6Va8On3pWvqLHOt5aPUvFb/FeZTmphI4CPiQ==}
+
+  '@prisma/engines@6.8.0':
+    resolution: {integrity: sha512-F1L6EbM4QsC84KzNk2gBiulmWvj4QRe+9QqHIAgKMPSOPnJhjeNSdcOrc2qkctJxew8F18tyzZOrcgHVg76IxQ==}
+
+  '@prisma/fetch-engine@6.8.0':
+    resolution: {integrity: sha512-3mXaUxyqA2IHWGw4uHsA7yXyN2F6KVJ8Re7JgUwsHsYS4rgXXC7N4YIFfuStFw2y937RHgJfxzYBt2djkIbZXw==}
+
+  '@prisma/get-platform@6.8.0':
+    resolution: {integrity: sha512-NyHPoTGOZt/pDSWh0ioSU8EylBpEKdrCpgh5kfIqLww/HGMfgdmCPVMf+qBtSJXthqUIS6qAZ04Bvwq1qJHEdg==}
 
   '@remirror/core-constants@3.0.0':
     resolution: {integrity: sha512-42aWfPrimMfDKDi4YegyS7x+/0tlzaqwPQCULLanv3DMIlu96KTJR0fM5isWX2UViOqlGnX6YFgqWepcX+XMNg==}
@@ -2338,6 +2379,16 @@ packages:
     resolution: {integrity: sha512-QQtaxnoDJeAkDvDKWCLiwIXkTgRhwYDEQCghU9Z6q03iyek/rxRh/2lC3HB7P8sWT2xC/y5JDctPLBIGzHKbhw==}
     engines: {node: '>=14'}
 
+  prisma@6.8.0:
+    resolution: {integrity: sha512-Jv1DrZs4DhL4b0URa0cMtY4VRYrlGTbTAPjEITvYG7KjfC0yUPXxH8ZvPnLj0jolbJnR7aMqA1Ait9J1KG2GCA==}
+    engines: {node: '>=18.18'}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.1.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
 
@@ -3233,6 +3284,36 @@ snapshots:
     optional: true
 
   '@popperjs/core@2.11.8': {}
+
+  '@prisma/client@6.8.0(prisma@6.8.0(typescript@5.8.2))(typescript@5.8.2)':
+    optionalDependencies:
+      prisma: 6.8.0(typescript@5.8.2)
+      typescript: 5.8.2
+
+  '@prisma/config@6.8.0':
+    dependencies:
+      jiti: 2.4.2
+
+  '@prisma/debug@6.8.0': {}
+
+  '@prisma/engines-version@6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e': {}
+
+  '@prisma/engines@6.8.0':
+    dependencies:
+      '@prisma/debug': 6.8.0
+      '@prisma/engines-version': 6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e
+      '@prisma/fetch-engine': 6.8.0
+      '@prisma/get-platform': 6.8.0
+
+  '@prisma/fetch-engine@6.8.0':
+    dependencies:
+      '@prisma/debug': 6.8.0
+      '@prisma/engines-version': 6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e
+      '@prisma/get-platform': 6.8.0
+
+  '@prisma/get-platform@6.8.0':
+    dependencies:
+      '@prisma/debug': 6.8.0
 
   '@remirror/core-constants@3.0.0': {}
 
@@ -5303,6 +5384,13 @@ snapshots:
   prelude-ls@1.2.1: {}
 
   prettier@3.5.3: {}
+
+  prisma@6.8.0(typescript@5.8.2):
+    dependencies:
+      '@prisma/config': 6.8.0
+      '@prisma/engines': 6.8.0
+    optionalDependencies:
+      typescript: 5.8.2
 
   prop-types@15.8.1:
     dependencies:
