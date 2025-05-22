@@ -50,24 +50,20 @@ app.get("/signin", async (req, res) => {
         })
         return;
     }
-    try{
-        const user = await prismaClient.user.findFirst({
+    const user = await prismaClient.user.findFirst({
             where:{
-                email:parsedData.data.email
+                email:parsedData.data.email,
+                password:parsedData.data.password
             }
         })
-    }
-    catch(e){
-        res.status(411).json({
-            message: "Can't find the user"
+    if(!user){
+        res.status(403).json({
+            message:"Not auth"
         })
-    }
-    const user = {
-        username: parsedData.data.email,
-        password: parsedData.data.password
+        return;
     }
     const token = jwt.sign({
-        userId: user.username
+        userId: user?.id
     }, JWT_SECRET);
 
     res.json({
@@ -84,12 +80,26 @@ app.post("/createProject", middleware, async (req, res) => {
         })
         return;
     }
+    
+    //@ts-ignore
+    const user = req.userId
+
     try {
-        console.log(parsedData)
+        const file = await prismaClient.file.create({
+            data:{
+                name:parsedData.data.tittle,
+                data:parsedData.data.data,
+                userId:user
+            }
+        })
+        res.json({
+            fileId: file.id
+        })
     }
     catch (e) {
+        // console.log(e)
         res.status(411).json({
-            message: "User Already exists with this username"
+            message: "something went wrong"
         })
     }
 })

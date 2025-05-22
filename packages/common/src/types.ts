@@ -14,7 +14,7 @@ export const SigninSchema = z.object({
 
 export const CreateProjectSchema = z.object({
     tittle:z.string(),
-    desc:z.string()
+    data:z.string()
 })
 
 export const SaveProject = z.object({
