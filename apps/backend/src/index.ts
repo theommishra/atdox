@@ -5,6 +5,8 @@ import { JWT_SECRET } from "@repo/backend-common/config";
 import { CreateUserSchema, SigninSchema, CreateProjectSchema, SaveProject } from "@repo/common/types";
 import { middleware } from "./middleware";
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {prismaClient} from "@repo/db/client";
+
 const app = express();
 
 app.use(express.json());
@@ -21,7 +23,16 @@ app.post("/signup", async (req, res) => {
         return;
     }
     try {
-        console.log(parsedData)
+        const user = await prismaClient.user.create({
+            data: {
+                email: parsedData.data?.email,
+                password: parsedData.data.password,
+                name: parsedData.data.name,
+            }
+    })
+     res.json({
+            userId: user.id
+        })
     }
     catch (e) {
         res.status(411).json({
@@ -39,8 +50,20 @@ app.get("/signin", async (req, res) => {
         })
         return;
     }
+    try{
+        const user = await prismaClient.user.findFirst({
+            where:{
+                email:parsedData.data.email
+            }
+        })
+    }
+    catch(e){
+        res.status(411).json({
+            message: "Can't find the user"
+        })
+    }
     const user = {
-        username: parsedData.data.username,
+        username: parsedData.data.email,
         password: parsedData.data.password
     }
     const token = jwt.sign({
