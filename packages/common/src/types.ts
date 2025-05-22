@@ -18,6 +18,6 @@ export const CreateProjectSchema = z.object({
 })
 
 export const SaveProject = z.object({
-    id: z.string(),
-    content: z.string()
+    id:z.number(),
+    data: z.string()
 })

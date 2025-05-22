@@ -104,9 +104,28 @@ app.post("/createProject", middleware, async (req, res) => {
     }
 })
 
-app.post("/saveproject", async (req, res) => {
-    const doc = SaveProject.safeParse(req.body)
-    console.log(doc.data?.content)
+app.post("/saveproject", middleware,async (req, res) => {
+    //@ts-ignore
+    const user = req.userId
+
+    const parsedData = SaveProject.safeParse(req.body)
+    try {
+        const saveFile = await prismaClient.file.update({
+        //@ts-ignore
+        where:{
+            id:parsedData.data?.id
+        },
+        data:{
+            data:parsedData.data?.data
+        }
+    })
+    res.json({
+        "message":"Done"
+    })
+        
+    } catch (error) {
+        console.log(error)
+    }
 })
 //@ts-ignore
 app.post("/hitapi", async (req, res) => {
