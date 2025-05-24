@@ -9,7 +9,9 @@ type ButtonProps = {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
+  type?: "button" | "submit" | "reset";  // <-- Add this line
 };
+
 
 const Button = ({
   variant = "primary",

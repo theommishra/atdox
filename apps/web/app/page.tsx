@@ -1,6 +1,8 @@
 import FeatureCard from "../components/FeatureCard";
 import { features } from "./data/features";
 import Button from "../../../packages/ui/src/button";
+import Link from "next/link";
+
 
 export default function HomePage() {
   return (
@@ -14,9 +16,11 @@ export default function HomePage() {
           A Notion-like workspace where you can write, plan, and collaborate. All in one place.
         </p>
 
-        <Button variant="primary" size="lg">
-          Create your first File
-        </Button>
+        <Link href="/editor">
+          <Button variant="primary" size="lg">
+            Create your first File
+          </Button>
+        </Link>
 
       </section>
 
