@@ -1,0 +1,114 @@
+.tiptap {
+  /* Remove top margin from the first child (like a paragraph or heading) */
+  :first-child {
+    margin-top: 0;
+  }
+
+  /* Main contenteditable styling */
+  [contenteditable='true'] {
+    outline: none;
+    box-shadow: none;
+    border: none;
+    min-height: 200px;
+    padding: 1rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.6;
+  }
+
+  /* Paragraphs */
+  p {
+    margin: 0.5em 0;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    margin: 1em 0 0.5em;
+  }
+
+  /* Bold/italic */
+  strong {
+    font-weight: bold;
+  }
+
+  em {
+    font-style: italic;
+  }
+
+  /* Highlight */
+  mark {
+    background-color: #ffe066;
+    padding: 0.1em 0.2em;
+    border-radius: 0.25em;
+  }
+
+  /* Code */
+  code {
+    background-color: #f5f5f5;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+  }
+
+  /* Strike */
+  s {
+    text-decoration: line-through;
+  }
+
+  /* Bullet and numbered lists */
+  ul,
+  ol {
+    padding-left: 1.5rem;
+    margin: 1em 0;
+
+    li {
+      margin-bottom: 0.25em;
+
+      p {
+        margin: 0.25em 0;
+      }
+    }
+  }
+
+  /* Text alignment */
+  .text-left {
+    text-align: left;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  /* Focus outline (optional UX improvement) */
+  [contenteditable='true']:focus {
+    outline: 2px solid #2563eb; /* Tailwind blue-600 */
+    border-radius: 0.375rem;
+  }
+
+  /* Placeholder (if using Placeholder extension) */
+  .tiptap p.is-empty::before {
+    content: attr(data-placeholder);
+    color: #aaa;
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+}
+
+[data-theme="dark"] .tiptap {
+  background-color: #1f1f1f;
+  color: #eee;
+
+  code {
+    background-color: #2d2d2d;
+  }
+
+  mark {
+    background-color: #ffc107;
+  }
+}
