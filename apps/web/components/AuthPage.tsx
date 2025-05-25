@@ -7,6 +7,8 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [name, setName] = useState("");       // Only used in Sign Up
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [message, setMessage] = useState("");
+
 
     const handleAuth = async () => {
         const endpoint = isSignin
@@ -17,22 +19,67 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
             ? { email, password }
             : { email, password, name };
 
-        console.log(JSON.stringify(payload))
         try {
             const res = await fetch(endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
+                credentials: "include",
                 body: JSON.stringify(payload),
             });
 
             const data = await res.json();
-            console.log(data); // Handle token, redirect, error message, etc.
+
+            if (res.status === 200) {
+                if (isSignin && data.token) {
+                    // Direct redirect for signin
+                    window.location.href = "/editor";
+                } else if (!isSignin && data.userId) {
+                    // For signup, automatically sign in
+                    try {
+                        const signinRes = await fetch("http://localhost:3002/signin", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            credentials: "include",
+                            body: JSON.stringify({ email, password }),
+                        });
+
+                        const signinData = await signinRes.json();
+                        if (signinRes.status === 200 && signinData.token) {
+                            window.location.href = "/editor";
+                        } else {
+                            setMessage("Account created but failed to sign in. Please try signing in manually.");
+                            setPassword("");
+                        }
+                    } catch (signinErr) {
+                        console.error("Auto signin failed:", signinErr);
+                        setMessage("Account created but failed to sign in. Please try signing in manually.");
+                        setPassword("");
+                    }
+                } else {
+                    setMessage(data.message || "Invalid credentials");
+                    setPassword("");
+                    setName("");
+                    setEmail("");
+                }
+            } else {
+                setMessage(data.message || "Invalid credentials");
+                setPassword("");
+                setName("");
+                setEmail("");
+            }
         } catch (err) {
             console.error("Auth failed:", err);
+            setMessage("Server error. Please try again.");
+            setPassword("");
+            setName("");
+            setEmail("");
         }
     };
+
 
     return (
         <div className="m-28 flex justify-center items-center text-white">
@@ -76,6 +123,11 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
 
 
                 </div>
+                {message && (
+                    <div className="p-2 text-center text-sm font-bold text-gray-600">
+                        {message}
+                    </div>
+                )}
             </div>
         </div>
     );

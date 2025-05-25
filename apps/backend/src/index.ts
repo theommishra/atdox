@@ -68,9 +68,10 @@ app.post("/signin", async (req, res) => {
         userId: user?.id
     }, JWT_SECRET);
     res.cookie("authorization", token, {
-        httpOnly: true,
-        secure: true, // only over HTTPS
-        sameSite: "strict",
+        // httpOnly: true,
+        secure: false, // only over HTTPS
+        // sameSite: "strict",
+        path: "/",  
     });
 
 
@@ -78,6 +79,12 @@ app.post("/signin", async (req, res) => {
         token
     })
 })
+
+app.post("/signout", (req, res) => {
+  res.clearCookie("authorization");
+  res.status(200).json({ message: "Signed out successfully" });
+});
+
 
 app.post("/createProject", middleware, async (req, res) => {
     const parsedData = CreateProjectSchema.safeParse(req.body);
