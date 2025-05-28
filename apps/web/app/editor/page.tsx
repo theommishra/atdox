@@ -22,6 +22,10 @@ type ToolbarButton = {
 
 export default function TiptapEditor() {
   const [mounted, setMounted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [fileId, setFileId] = useState<number | null>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -44,6 +48,95 @@ export default function TiptapEditor() {
     ],
     content: '<p>Hello World!!!!</p>',
   });
+
+  const handleSave = async () => {
+    if (!editor) return;
+    
+    setIsSaving(true);
+    setSaveMessage('');
+    
+    try {
+      const content = editor.getHTML();
+      const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+      
+      if (!token) {
+        setSaveMessage('Please sign in to save files');
+        return;
+      }
+
+      const response = await fetch('http://localhost:3002/createProject', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          tittle: 'New Document',
+          data: content
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save');
+      }
+
+      const data = await response.json();
+      if (data.fileId) {
+        setFileId(data.fileId);
+      }
+      setSaveMessage('New file created successfully!');
+    } catch (error) {
+      setSaveMessage('Failed to create new file. Please try again.');
+      console.error('Save error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editor || !fileId) {
+      setSaveMessage('Please save the file first before updating.');
+      return;
+    }
+    
+    setIsSaving(true);
+    setSaveMessage('');
+    
+    try {
+      const content = editor.getHTML();
+      const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+      
+      if (!token) {
+        setSaveMessage('Please sign in to update files');
+        return;
+      }
+
+      const response = await fetch('http://localhost:3002/saveproject', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: fileId,
+          data: content
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update');
+      }
+
+      setSaveMessage('File updated successfully!');
+    } catch (error) {
+      setSaveMessage('Failed to update file. Please try again.');
+      console.error('Update error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -211,9 +304,22 @@ export default function TiptapEditor() {
       isActive: () => editor.isActive('blockquote'),
       disabled: () => false,
     },
-
-
-
+    {
+      id: 'save',
+      action: handleSave,
+      icon: 'Save New',
+      label: 'Save as New File',
+      isActive: () => false,
+      disabled: () => isSaving,
+    },
+    {
+      id: 'update',
+      action: handleUpdate,
+      icon: 'Update',
+      label: 'Update Existing File',
+      isActive: () => false,
+      disabled: () => isSaving || !fileId,
+    },
   ];
 
 
@@ -241,6 +347,12 @@ export default function TiptapEditor() {
         })}
 
       </div>
+
+      {saveMessage && (
+        <div className={`px-4 py-2 text-sm ${saveMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+          {saveMessage}
+        </div>
+      )}
 
       {/* Editor Content */}
       <EditorContent

@@ -1,5 +1,5 @@
 require('dotenv').config();
-import express, { response } from "express";
+import express, { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@repo/backend-common/config";
 import { CreateUserSchema, SigninSchema, CreateProjectSchema, SaveProject } from "@repo/common/types";
@@ -77,6 +77,7 @@ app.post("/signin", async (req, res) => {
 
     res.json({
         token
+        
     })
 })
 
@@ -85,63 +86,78 @@ app.post("/signout", (req, res) => {
   res.status(200).json({ message: "Signed out successfully" });
 });
 
+app.get("/allproject",middleware,(req,res)=>{
+    
+})
 
-app.post("/createProject", middleware, async (req, res) => {
+
+app.post("/createProject", middleware, async (req: Request, res: Response): Promise<void> => {
     const parsedData = CreateProjectSchema.safeParse(req.body);
     if (!parsedData.success) {
-        console.log(parsedData.error)
-        res.json({
+        res.status(400).json({
             message: "Incorrect inputs"
-        })
+        });
         return;
     }
 
     //@ts-ignore
-    const user = req.userId
+    const userId = req.userId;
 
     try {
         const file = await prismaClient.file.create({
             data: {
                 name: parsedData.data.tittle,
                 data: parsedData.data.data,
-                userId: user
+                userId: userId
             }
-        })
+        });
         res.json({
-            fileId: file.id
-        })
+            fileId: file.id,
+            message: "File created successfully"
+        });
     }
     catch (e) {
-        // console.log(e)
-        res.status(411).json({
-            message: "something went wrong"
-        })
+        console.error("Create file error:", e);
+        res.status(500).json({
+            message: "Failed to create file"
+        });
     }
-})
+});
 
-app.post("/saveproject", middleware, async (req, res) => {
+app.post("/saveproject", middleware, async (req: Request, res: Response): Promise<void> => {
     //@ts-ignore
-    const user = req.userId
+    const userId = req.userId;
 
-    const parsedData = SaveProject.safeParse(req.body)
+    const parsedData = SaveProject.safeParse(req.body);
+    if (!parsedData.success) {
+        res.status(400).json({
+            message: "Invalid data format"
+        });
+        return;
+    }
+
     try {
         const saveFile = await prismaClient.file.update({
-            //@ts-ignore
             where: {
-                id: parsedData.data?.id
+                id: parsedData.data.id,
+                userId: userId
             },
             data: {
-                data: parsedData.data?.data
+                data: parsedData.data.data
             }
-        })
+        });
+        
         res.json({
-            "message": "Done"
-        })
-
+            message: "File updated successfully",
+            fileId: saveFile.id
+        });
     } catch (error) {
-        console.log(error)
+        console.error("Update file error:", error);
+        res.status(404).json({
+            message: "File not found or you don't have permission to edit it"
+        });
     }
-})
+});
 //@ts-ignore
 app.post("/hitapi", async (req, res) => {
     const { prompt } = req.body;
