@@ -10,7 +10,12 @@ import { prismaClient } from "@repo/db/client";
 const app = express();
 const cors = require('cors');
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 
 
 
@@ -86,10 +91,44 @@ app.post("/signout", (req, res) => {
   res.status(200).json({ message: "Signed out successfully" });
 });
 
-app.get("/allproject",middleware,(req,res)=>{
-    
-})
+app.get("/allprojects", middleware, async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.userId;
 
+    if (!userId) {
+        res.status(401).json({
+            message: "Authentication required"
+        });
+        return;
+    }
+
+    try {
+        const projects = await prismaClient.file.findMany({
+            where: {
+                userId: userId
+            },
+            select: {
+                id: true,
+                name: true,
+                createdAt: true,
+                updatedAt: true
+            },
+            orderBy: {
+                updatedAt: 'desc'
+            }
+        });
+
+        res.setHeader('Content-Type', 'application/json');
+        res.json({
+            projects: projects || []
+        });
+    } catch (error) {
+        console.error("Error fetching projects:", error);
+        res.status(500).json({
+            message: "Failed to fetch projects"
+        });
+    }
+});
 
 app.post("/createProject", middleware, async (req: Request, res: Response): Promise<void> => {
     const parsedData = CreateProjectSchema.safeParse(req.body);
