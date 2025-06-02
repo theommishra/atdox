@@ -13,6 +13,7 @@ type ButtonProps = {
   loading?: boolean;
   type?: "button" | "submit" | "reset";
   "aria-label"?: string;
+  title?: string;
 };
 
 const Button = ({
@@ -25,8 +26,9 @@ const Button = ({
   loading = false,
   type = "button",
   "aria-label": ariaLabel,
+  title,
 }: ButtonProps) => {
-  const baseStyles = "rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyles = "rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95";
   
   const variantStyles = {
     primary: "bg-black text-white hover:bg-gray-800 focus:ring-gray-500",
@@ -45,6 +47,7 @@ const Button = ({
       onClick={onClick}
       disabled={disabled || loading}
       aria-label={ariaLabel}
+      title={title}
       className={clsx(
         baseStyles,
         variantStyles[variant],

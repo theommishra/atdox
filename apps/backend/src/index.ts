@@ -197,6 +197,39 @@ app.post("/saveproject", middleware, async (req: Request, res: Response): Promis
         });
     }
 });
+
+app.delete("/deleteproject", middleware, async (req: Request, res: Response): Promise<void> => {
+    //@ts-ignore
+    const userId = req.userId;
+    const projectId = parseInt(req.query.id as string);
+
+    if (!projectId || isNaN(projectId)) {
+        res.status(400).json({
+            message: "Invalid project ID"
+        });
+        return;
+    }
+
+    try {
+        const deletedFile = await prismaClient.file.delete({
+            where: {
+                id: projectId,
+                userId: userId
+            }
+        });
+        
+        res.json({
+            message: "Project deleted successfully",
+            fileId: deletedFile.id
+        });
+    } catch (error) {
+        console.error("Delete file error:", error);
+        res.status(404).json({
+            message: "File not found or you don't have permission to delete it"
+        });
+    }
+});
+
 //@ts-ignore
 app.post("/hitapi", async (req, res) => {
     const { prompt } = req.body;
