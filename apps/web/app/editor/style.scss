@@ -57,29 +57,27 @@
   }
 
   /* Bullet and numbered lists */
- /* Bullet and numbered lists */
-ul {
-  list-style-type: disc;
-  padding-left: 1.5rem;
-  margin: 1.25rem 1rem 1.25rem 0.4rem;
+  ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin: 1.25rem 1rem 1.25rem 0.4rem;
 
-  li p {
-    margin-top: 0.25em;
-    margin-bottom: 0.25em;
+    li p {
+      margin-top: 0.25em;
+      margin-bottom: 0.25em;
+    }
   }
-}
 
-ol {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
-  margin: 1.25rem 1rem 1.25rem 0.4rem;
+  ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin: 1.25rem 1rem 1.25rem 0.4rem;
 
-  li p {
-    margin-top: 0.25em;
-    margin-bottom: 0.25em;
+    li p {
+      margin-top: 0.25em;
+      margin-bottom: 0.25em;
+    }
   }
-}
-
 
   /* Text alignment */
   .text-left {
@@ -99,6 +97,7 @@ ol {
     outline: 2px solid #2563eb; /* Tailwind blue-600 */
     border-radius: 0.375rem;
   }
+
   h1, 
   h2, 
   h3, 
@@ -133,12 +132,14 @@ ol {
   h6 { 
     font-size: 1rem; 
   }
+
   hr {
     border: none;
     border-top: 1px solid #aaa;
     margin: 2rem 0;
   }
-   blockquote {
+
+  blockquote {
     border-left: 3px solid #aaa;
     margin: 1.5rem 0;
     padding-left: 1rem;
@@ -154,16 +155,68 @@ ol {
   }
 }
 
+/* Dark mode styles */
+.dark {
+  .tiptap {
+    background-color: #1f1f1f;
+    color: #eee;
 
-[data-theme="dark"] .tiptap {
-  background-color: #1f1f1f;
-  color: #eee;
+    code {
+      background-color: #2d2d2d;
+    }
 
-  code {
-    background-color: #2d2d2d;
+    mark {
+      background-color: #ffc107;
+    }
+
+    hr {
+      border-top-color: #444;
+    }
+
+    blockquote {
+      border-left-color: #444;
+    }
+
+    .tiptap p.is-empty::before {
+      color: #666;
+    }
   }
 
-  mark {
-    background-color: #ffc107;
+  /* Editor container dark mode styles */
+  .mx-auto.my-6.max-w-7xl {
+    border-color: #333;
+    background-color: #1a1a1a;
+  }
+
+  /* Toolbar dark mode styles */
+  .flex.flex-col.border-b.bg-gray-50 {
+    background-color: #1a1a1a;
+    border-color: #333;
+  }
+
+  /* Toolbar sections dark mode styles */
+  .flex.flex-col.items-center.border.border-gray-200.rounded-lg.p-2.bg-white {
+    background-color: #2d2d2d;
+    border-color: #444;
+  }
+
+  /* Toolbar labels dark mode styles */
+  .text-xs.font-medium.text-gray-500 {
+    color: #999;
+  }
+
+  /* Save/Update buttons container dark mode styles */
+  .sticky.top-0.z-\[1\].bg-white.border-b.border-gray-300 {
+    background-color: #1a1a1a;
+    border-color: #333;
+  }
+
+  /* Save message dark mode styles */
+  .text-green-600 {
+    color: #4ade80;
+  }
+
+  .text-red-600 {
+    color: #f87171;
   }
 }

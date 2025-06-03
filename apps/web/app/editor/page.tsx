@@ -411,9 +411,9 @@ export default function TiptapEditor() {
 
 
   return (
-    <div className="mx-auto my-6 max-w-7xl border border-gray-300 rounded-lg shadow-sm">
+    <div className="mx-auto my-6 max-w-7xl border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm dark:bg-gray-900">
       {/* Fixed Save/Update Buttons */}
-      <div className="sticky top-0 z-[1] bg-white border-b border-gray-300 p-2 flex justify-end gap-2">
+      <div className="sticky top-0 z-[1] bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 p-2 flex justify-end gap-2">
         <Button
           onClick={handleSave}
           disabled={isSaving}
@@ -422,6 +422,7 @@ export default function TiptapEditor() {
           type="button"
           aria-label="Save as New File"
           title="Save as New File"
+          className="dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -437,6 +438,7 @@ export default function TiptapEditor() {
           type="button"
           aria-label="Update Existing File"
           title="Update Existing File"
+          className="dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -447,11 +449,11 @@ export default function TiptapEditor() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col border-b bg-gray-50">
+      <div className="flex flex-col border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
         <div className="flex flex-wrap gap-4 p-4" role="toolbar" aria-label="Text formatting">
           {/* Text Formatting */}
-          <div className="flex flex-col items-center border border-gray-200 rounded-lg p-2 bg-white">
-            <div className="text-xs font-medium text-gray-500 mb-2">Format</div>
+          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Format</div>
             <div className="flex gap-2">
               {toolbarButtons.slice(0, 5).map(({ id, action, icon, label, isActive, disabled }) => {
                 const active = isActive?.();
@@ -466,7 +468,7 @@ export default function TiptapEditor() {
                     type="button"
                     aria-label={label}
                     title={label}
-                    className={active ? 'is-active' : ''}
+                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
                   >
                     {icon}
                   </Button>
@@ -476,8 +478,8 @@ export default function TiptapEditor() {
           </div>
 
           {/* Lists */}
-          <div className="flex flex-col items-center border border-gray-200 rounded-lg p-2 bg-white">
-            <div className="text-xs font-medium text-gray-500 mb-2">Lists</div>
+          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Lists</div>
             <div className="flex gap-2">
               {toolbarButtons.slice(5, 7).map(({ id, action, icon, label, isActive, disabled }) => {
                 const active = isActive?.();
@@ -492,7 +494,7 @@ export default function TiptapEditor() {
                     type="button"
                     aria-label={label}
                     title={label}
-                    className={active ? 'is-active' : ''}
+                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
                   >
                     {icon}
                   </Button>
@@ -502,8 +504,8 @@ export default function TiptapEditor() {
           </div>
 
           {/* Alignment */}
-          <div className="flex flex-col items-center border border-gray-200 rounded-lg p-2 bg-white">
-            <div className="text-xs font-medium text-gray-500 mb-2">Alignment</div>
+          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Alignment</div>
             <div className="flex gap-2">
               {toolbarButtons.slice(7, 11).map(({ id, action, icon, label, isActive, disabled }) => {
                 const active = isActive?.();
@@ -518,7 +520,7 @@ export default function TiptapEditor() {
                     type="button"
                     aria-label={label}
                     title={label}
-                    className={active ? 'is-active' : ''}
+                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
                   >
                     {icon}
                   </Button>
@@ -528,8 +530,8 @@ export default function TiptapEditor() {
           </div>
 
           {/* Headings */}
-          <div className="flex flex-col items-center border border-gray-200 rounded-lg p-2 bg-white">
-            <div className="text-xs font-medium text-gray-500 mb-2">Headings</div>
+          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Headings</div>
             <div className="flex gap-2">
               {toolbarButtons.slice(11, 17).map(({ id, action, icon, label, isActive, disabled, className }) => {
                 const active = isActive?.();
@@ -544,7 +546,7 @@ export default function TiptapEditor() {
                     type="button"
                     aria-label={label}
                     title={label}
-                    className={`${active ? 'is-active' : ''} ${className || ''}`}
+                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} ${className || ''}`}
                   >
                     {icon}
                   </Button>
@@ -554,8 +556,8 @@ export default function TiptapEditor() {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col items-center border border-gray-200 rounded-lg p-2 bg-white">
-            <div className="text-xs font-medium text-gray-500 mb-2">Actions</div>
+          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Actions</div>
             <div className="flex gap-2">
               {toolbarButtons.slice(17).map(({ id, action, icon, label, isActive, disabled }) => {
                 const active = isActive?.();
@@ -570,7 +572,7 @@ export default function TiptapEditor() {
                     type="button"
                     aria-label={label}
                     title={label}
-                    className={active ? 'is-active' : ''}
+                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
                   >
                     {icon}
                   </Button>
@@ -582,14 +584,14 @@ export default function TiptapEditor() {
       </div>
 
       {saveMessage && (
-        <div className={`px-4 py-2 text-sm ${saveMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+        <div className={`px-4 py-2 text-sm ${saveMessage.includes('success') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
           {saveMessage}
         </div>
       )}
 
       {/* Editor Content */}
       <EditorContent
-        className="tiptap p-4 min-h-[200px] focus:outline-none"
+        className="tiptap p-4 min-h-[200px] focus:outline-none dark:bg-gray-900 dark:text-gray-100"
         editor={editor}
       />
     </div>
