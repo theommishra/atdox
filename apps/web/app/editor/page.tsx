@@ -12,6 +12,9 @@ import Color from '@tiptap/extension-color';
 import Button from "../../../../packages/ui/src/button";
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
+import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import html2pdf from 'html2pdf.js';
 
 type ToolbarButton = {
   id: string;
@@ -37,15 +40,6 @@ export default function TiptapEditor() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Get fileId from URL on mount
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('id');
-    if (id) {
-      setFileId(parseInt(id));
-    }
-  }, []);
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -58,17 +52,30 @@ export default function TiptapEditor() {
           keepAttributes: false,
         },
       }),
+      Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
-        alignments: ['left', 'center', 'right','justify'],
+        alignments: ['left', 'center', 'right', 'justify'],
       }),
+      Color.configure({ types: [TextStyle.name, Highlight.name] }),
+      TextStyle,
       Highlight.configure({ multicolor: true }),
       Code,
       Strike,
-      TextStyle,
-      Color,
+      Link.configure({
+        openOnClick: false,
+      }),
     ],
-    content: '<p>Hello World!!!!</p>',
+    content: '<p>Loading...</p>',
+    onUpdate: ({ editor }) => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      setAutoSaveStatus('saving');
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSave();
+      }, 1000);
+    },
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection;
       
@@ -105,6 +112,59 @@ export default function TiptapEditor() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Get fileId from URL on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    if (id) {
+      setFileId(parseInt(id));
+    }
+  }, []);
+
+  // Load existing file data when we have a fileId
+  useEffect(() => {
+    const loadExistingFile = async () => {
+      if (!editor || !fileId || !mounted) return;
+      
+      try {
+        const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+        
+        if (!token) {
+          setSaveMessage('Please sign in to load files');
+          return;
+        }
+
+        const response = await fetch(`http://localhost:3002/getProject/${fileId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to load file');
+        }
+
+        const data = await response.json();
+        if (data.data) {
+          editor.commands.setContent(data.data);
+          setAutoSaveStatus('saved');
+        } else {
+          console.error('No data in response:', data);
+          throw new Error('No data received from server');
+        }
+      } catch (error) {
+        console.error('File loading error:', error);
+        setAutoSaveStatus('error');
+        setSaveMessage('Failed to load file. Please try again.');
+      }
+    };
+
+    loadExistingFile();
+  }, [editor, fileId, mounted]);
 
   // Create initial file on mount
   useEffect(() => {
@@ -383,6 +443,65 @@ export default function TiptapEditor() {
     };
   }, [editor, fileId, debouncedAutoSave]);
 
+  const handleDownloadPDF = async () => {
+    if (!editor) return;
+
+    try {
+      const content = editor.getHTML();
+      const element = document.createElement('div');
+      element.innerHTML = content;
+      
+      // Add styling for better PDF output
+      const style = document.createElement('style');
+      style.textContent = `
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #000000 !important;
+          background-color: #ffffff !important;
+        }
+        h1 { font-size: 24px; margin-bottom: 16px; color: #000000 !important; }
+        h2 { font-size: 20px; margin-bottom: 14px; color: #000000 !important; }
+        h3 { font-size: 18px; margin-bottom: 12px; color: #000000 !important; }
+        p { margin-bottom: 12px; color: #000000 !important; }
+        ul, ol { margin-bottom: 12px; padding-left: 24px; color: #000000 !important; }
+        li { margin-bottom: 6px; color: #000000 !important; }
+        code { background: #f5f5f5; padding: 2px 4px; border-radius: 4px; color: #000000 !important; }
+        blockquote {
+          border-left: 4px solid #ddd;
+          margin: 16px 0;
+          padding-left: 16px;
+          color: #000000 !important;
+        }
+        * { color: #000000 !important; }
+      `;
+      element.prepend(style);
+      
+      const opt = {
+        margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number],
+        filename: 'document.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          letterRendering: true
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'a4', 
+          orientation: 'portrait' as 'portrait' | 'landscape'
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      setSaveMessage('PDF downloaded successfully!');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      setSaveMessage('Failed to generate PDF. Please try again.');
+    }
+  };
+
   if (!editor) return null;
 
   const floatingToolbarButtons: ToolbarButton[] = [
@@ -538,6 +657,19 @@ export default function TiptapEditor() {
       label: 'Justify',
       isActive: () => editor.isActive({ textAlign: 'justify' }),
     },
+    {
+      id: 'download',
+      action: handleDownloadPDF,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      ),
+      label: 'Download PDF',
+      className: 'download-button'
+    },
   ];
 
   return (
@@ -560,7 +692,7 @@ export default function TiptapEditor() {
                 <>
                   <svg className="h-4 w-4 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+          </svg>
                   <span>All changes saved</span>
                 </>
               )}
@@ -568,7 +700,7 @@ export default function TiptapEditor() {
                 <>
                   <svg className="h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+          </svg>
                   <span>Error saving changes</span>
                 </>
               )}
@@ -583,48 +715,48 @@ export default function TiptapEditor() {
           {/* History and Clear Tools */}
           <div className="flex items-center gap-2 border-r border-gray-300 dark:border-gray-700 pr-2">
             {fixedToolbarButtons.slice(0, 3).map(({ id, action, icon, label, isActive, disabled }) => {
-              const active = isActive?.();
-              const isDisabled = disabled?.();
-              return (
-                <Button
-                  key={id}
-                  onClick={action}
-                  variant={active ? 'secondary' : 'primary'}
-                  size="sm"
-                  type="button"
-                  aria-label={label}
-                  title={label}
+                const active = isActive?.();
+                const isDisabled = disabled?.();
+                return (
+                  <Button
+                    key={id}
+                    onClick={action}
+                    variant={active ? 'secondary' : 'primary'}
+                    size="sm"
+                    type="button"
+                    aria-label={label}
+                    title={label}
                   disabled={isDisabled}
                   className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {icon}
-                </Button>
-              );
-            })}
+                  >
+                    {icon}
+                  </Button>
+                );
+              })}
           </div>
-          
+
           {/* Alignment Tools */}
           <div className="flex items-center gap-2">
             {fixedToolbarButtons.slice(3).map(({ id, action, icon, label, isActive }) => {
-              const active = isActive?.();
-              return (
-                <Button
-                  key={id}
-                  onClick={action}
-                  variant={active ? 'secondary' : 'primary'}
-                  size="sm"
-                  type="button"
-                  aria-label={label}
-                  title={label}
-                  className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
-                >
-                  {icon}
-                </Button>
-              );
-            })}
+                const active = isActive?.();
+                return (
+                  <Button
+                    key={id}
+                    onClick={action}
+                    variant={active ? 'secondary' : 'primary'}
+                    size="sm"
+                    type="button"
+                    aria-label={label}
+                    title={label}
+                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
+                  >
+                    {icon}
+                  </Button>
+                );
+              })}
           </div>
-        </div>
-      </div>
+            </div>
+          </div>
 
       {/* Floating Toolbar */}
       {showToolbar && (
@@ -638,22 +770,22 @@ export default function TiptapEditor() {
           }}
         >
           {floatingToolbarButtons.map(({ id, action, icon, label, isActive }) => {
-            const active = isActive?.();
-            return (
-              <Button
-                key={id}
-                onClick={action}
-                variant={active ? 'secondary' : 'primary'}
-                size="sm"
-                type="button"
-                aria-label={label}
-                title={label}
-                className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
-              >
-                {icon}
-              </Button>
-            );
-          })}
+                const active = isActive?.();
+                return (
+                  <Button
+                    key={id}
+                    onClick={action}
+                    variant={active ? 'secondary' : 'primary'}
+                    size="sm"
+                    type="button"
+                    aria-label={label}
+                    title={label}
+                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
+                  >
+                    {icon}
+                  </Button>
+                );
+              })}
 
           {/* Heading Dropdown */}
           <div className="relative" data-heading-menu>
@@ -685,17 +817,17 @@ export default function TiptapEditor() {
                     {`Heading ${level}`}
                   </button>
                 ))}
-              </div>
+            </div>
             )}
           </div>
 
           {/* Color Dropdown */}
           <div className="relative" data-color-menu>
-            <Button
+                  <Button
               onClick={() => setShowColorMenu(!showColorMenu)}
               variant={editor.isActive('textStyle') ? 'secondary' : 'primary'}
-              size="sm"
-              type="button"
+                    size="sm"
+                    type="button"
               aria-label="Text Color"
               title="Text Color"
               className={`${editor.isActive('textStyle') ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} flex items-center gap-1`}
@@ -722,17 +854,17 @@ export default function TiptapEditor() {
                     {name}
                   </button>
                 ))}
-              </div>
+            </div>
             )}
           </div>
 
           {/* Highlight Dropdown */}
           <div className="relative" data-highlight-menu>
-            <Button
+                  <Button
               onClick={() => setShowHighlightMenu(!showHighlightMenu)}
               variant={editor.isActive('highlight') ? 'secondary' : 'primary'}
-              size="sm"
-              type="button"
+                    size="sm"
+                    type="button"
               aria-label="Highlight Color"
               title="Highlight Color"
               className={`${editor.isActive('highlight') ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} flex items-center gap-1`}
@@ -758,7 +890,7 @@ export default function TiptapEditor() {
                     {name}
                   </button>
                 ))}
-              </div>
+            </div>
             )}
           </div>
         </div>

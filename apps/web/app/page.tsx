@@ -1,9 +1,28 @@
+'use client';
+
 import FeatureCard from "../components/FeatureCard";
 import { features } from "./data/features";
 import Button from "../../../packages/ui/src/button";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function HomePage() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+    setIsAuthenticated(!!token);
+  }, []);
+
+  const handleCreateFile = () => {
+    if (isAuthenticated) {
+      router.push('/projects');
+    } else {
+      router.push('/signin');
+    }
+  };
+
   return (
     <main className="min-h-screen bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
       <section className="text-center py-20 px-6">
@@ -14,11 +33,9 @@ export default function HomePage() {
           A modern workspace where you can write, plan, and collaborate. All in one place.
         </p>
 
-        <Link href="/editor">
-          <Button variant="primary" size="lg">
-            Create your first File
-          </Button>
-        </Link>
+        <Button variant="primary" size="lg" onClick={handleCreateFile}>
+          Create your first File
+        </Button>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8 px-6 py-16 max-w-6xl mx-auto">

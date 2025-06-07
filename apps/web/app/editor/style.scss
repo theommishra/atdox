@@ -220,3 +220,14 @@
     color: #f87171;
   }
 }
+
+.download-button {
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  &:hover {
+    background-color: #f3f4f6;
+  }
+}

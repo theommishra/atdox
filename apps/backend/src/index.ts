@@ -6,6 +6,9 @@ import { CreateUserSchema, SigninSchema, CreateProjectSchema, SaveProject } from
 import { middleware } from "./middleware";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prismaClient } from "@repo/db/client";
+import session from "express-session";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app = express();
 const cors = require('cors');
@@ -17,7 +20,38 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
+app.use(session({
+  secret: process.env.SESSION_SECRET as string,
+  resave: false,
+  saveUninitialized: true,
+}));
 
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID as string,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+  callbackURL: "/auth/google/callback"
+}, (accessToken, refreshToken, profile, done) => {
+  return done(null, profile); // You can save to DB here
+}));
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user: any, done) => done(null, user));
+
+app.get("/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] }));
+
+app.get("/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/" }),
+  (req, res) => {
+    res.redirect(process.env.FRONTEND_URL as string);
+  });
+
+app.get("/api/user", (req, res) => {
+  res.send(req.user);
+});
 
 app.post("/signup", async (req, res) => {
     const parsedData = CreateUserSchema.safeParse(req.body);
@@ -126,6 +160,60 @@ app.get("/allprojects", middleware, async (req: Request, res: Response) => {
         console.error("Error fetching projects:", error);
         res.status(500).json({
             message: "Failed to fetch projects"
+        });
+    }
+});
+
+app.get("/getProject/:id", middleware, async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.userId;
+    const projectId = req.params?.id ? parseInt(req.params.id) : null;
+
+    if (!userId) {
+        res.status(401).json({
+            message: "Authentication required"
+        });
+        return;
+    }
+
+    if (!projectId || isNaN(projectId)) {
+        res.status(400).json({
+            message: "Invalid project ID"
+        });
+        return;
+    }
+
+    try {
+        const project = await prismaClient.file.findFirst({
+            where: {
+                id: projectId,
+                userId: userId
+            },
+            select: {
+                id: true,
+                name: true,
+                data: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+
+        if (!project) {
+            res.status(404).json({
+                message: "Project not found"
+            });
+            return;
+        }
+
+        res.json({
+            data: project.data,
+            name: project.name,
+            id: project.id
+        });
+    } catch (error) {
+        console.error("Error fetching project:", error);
+        res.status(500).json({
+            message: "Failed to fetch project"
         });
     }
 });
@@ -251,6 +339,10 @@ app.post("/hitapi", async (req, res) => {
         res.status(500).json({ error: err.message || 'Something went wrong' });
     }
 });
+
+
+
+// console.log(process.env.GEMINI_API_KEY as string);
 
 
 app.listen(3002);

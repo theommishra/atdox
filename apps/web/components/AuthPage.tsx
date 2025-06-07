@@ -8,6 +8,9 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+    const loginWithGoogle = () => {
+        window.open("http://localhost:3002/auth/google", "_self");
+    };
 
 
     const handleAuth = async () => {
@@ -122,6 +125,10 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                     </Button>
 
 
+
+                </div>
+                <div>
+                    <button onClick={loginWithGoogle}>Login with Google</button>
                 </div>
                 {message && (
                     <div className="p-2 text-center text-sm font-bold text-gray-600">
