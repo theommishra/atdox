@@ -7,8 +7,10 @@ import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
 import Code from '@tiptap/extension-code';
 import Strike from '@tiptap/extension-strike';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
 import Button from "../../../../packages/ui/src/button";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
 
 type ToolbarButton = {
@@ -22,10 +24,27 @@ type ToolbarButton = {
 };
 
 export default function TiptapEditor() {
-  const [mounted, setMounted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [fileId, setFileId] = useState<number | null>(null);
+  const [showToolbar, setShowToolbar] = useState(false);
+  const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
+  const [selectionTimeout, setSelectionTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showHeadingMenu, setShowHeadingMenu] = useState(false);
+  const [showColorMenu, setShowColorMenu] = useState(false);
+  const [showHighlightMenu, setShowHighlightMenu] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Get fileId from URL on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    if (id) {
+      setFileId(parseInt(id));
+    }
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -46,9 +65,125 @@ export default function TiptapEditor() {
       Highlight.configure({ multicolor: true }),
       Code,
       Strike,
+      TextStyle,
+      Color,
     ],
     content: '<p>Hello World!!!!</p>',
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to } = editor.state.selection;
+      
+      // Clear any existing timeout
+      if (selectionTimeout) {
+        clearTimeout(selectionTimeout);
+      }
+
+      if (from !== to) {
+        const { view } = editor;
+        const start = view.coordsAtPos(from);
+        const end = view.coordsAtPos(to);
+        
+        // Position the toolbar above the selection
+        const top = start.top - 50; // 50px above the selection
+        const left = (start.left + end.left) / 2; // Center horizontally
+        
+        setToolbarPosition({ top, left });
+        
+        // Add a 150ms delay before showing the toolbar
+        const timeout = setTimeout(() => {
+          setShowToolbar(true);
+        }, 150);
+        
+        setSelectionTimeout(timeout);
+      } else {
+        // Hide the toolbar immediately when selection is cleared
+        setShowToolbar(false);
+      }
+    },
   });
+
+  // Set mounted state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Create initial file on mount
+  useEffect(() => {
+    const createInitialFile = async () => {
+      // Only create a new file if we don't have a fileId from the URL
+      if (!editor || fileId || !mounted) return;
+      
+      try {
+        const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+        
+        if (!token) {
+          setSaveMessage('Please sign in to save files');
+          return;
+        }
+
+        const response = await fetch('http://localhost:3002/createProject', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            tittle: 'New Document',
+            data: editor.getHTML()
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create initial file');
+        }
+
+        const data = await response.json();
+        if (data.fileId) {
+          setFileId(data.fileId);
+          setAutoSaveStatus('saved');
+        }
+      } catch (error) {
+        console.error('Initial file creation error:', error);
+        setAutoSaveStatus('error');
+      }
+    };
+
+    createInitialFile();
+  }, [editor, fileId, mounted]);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-heading-menu]')) {
+        setShowHeadingMenu(false);
+      }
+      if (!target.closest('[data-color-menu]')) {
+        setShowColorMenu(false);
+      }
+      if (!target.closest('[data-highlight-menu]')) {
+        setShowHighlightMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (selectionTimeout) {
+        clearTimeout(selectionTimeout);
+      }
+    };
+  }, [selectionTimeout]);
+
+  const handleHeadingClick = (level: number) => {
+    if (!editor) return;
+    editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 }).run();
+    setShowHeadingMenu(false);
+  };
 
   const handleSave = async () => {
     if (!editor) return;
@@ -139,13 +274,118 @@ export default function TiptapEditor() {
     }
   };
 
+  const colorOptions = [
+    { name: 'Default', value: 'inherit' },
+    { name: 'Red', value: '#ef4444' },
+    { name: 'Orange', value: '#f97316' },
+    { name: 'Yellow', value: '#eab308' },
+    { name: 'Green', value: '#22c55e' },
+    { name: 'Blue', value: '#3b82f6' },
+    { name: 'Purple', value: '#a855f7' },
+    { name: 'Pink', value: '#ec4899' },
+  ];
+
+  const highlightOptions = [
+    { name: 'Yellow', value: '#fef08a' },
+    { name: 'Green', value: '#bbf7d0' },
+    { name: 'Blue', value: '#bae6fd' },
+    { name: 'Pink', value: '#fbcfe8' },
+    { name: 'Purple', value: '#e9d5ff' },
+    { name: 'Orange', value: '#fed7aa' },
+  ];
+
+  const handleColorChange = (color: string) => {
+    if (!editor) return;
+    if (color === 'inherit') {
+      editor.chain().focus().clearNodes().unsetAllMarks().run();
+    } else {
+      editor.chain().focus().setMark('textStyle', { color }).run();
+    }
+    setShowColorMenu(false);
+  };
+
+  const handleHighlightChange = (color: string) => {
+    if (!editor) return;
+    editor.chain().focus().setMark('textStyle', { color: '#000000' }).setHighlight({ color }).run();
+    setShowHighlightMenu(false);
+  };
+
+  // Auto-save functionality
+  const autoSave = useCallback(async () => {
+    if (!editor || !fileId) return;
+    
+    setAutoSaveStatus('saving');
+    try {
+      const content = editor.getHTML();
+      const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+      
+      if (!token) {
+        setAutoSaveStatus('error');
+        return;
+      }
+
+      const response = await fetch('http://localhost:3002/saveproject', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: fileId,
+          data: content,
+          tittle: 'Updated Document'
+        }),
+      });
+
+      const data = await response.json();
+      
+      // Check if the response contains a success message
+      if (data.message?.includes('successfully') || response.ok) {
+        setAutoSaveStatus('saved');
+      } else {
+        console.error('Auto-save error response:', data);
+        throw new Error(data.message || 'Failed to auto-save');
+      }
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      setAutoSaveStatus('error');
+    }
+  }, [editor, fileId]);
+
+  // Debounced auto-save
+  const debouncedAutoSave = useCallback(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      autoSave();
+    }, 2000); // 2 second delay
+  }, [autoSave]);
+
+  // Set up auto-save on content changes
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!editor) return;
 
-  if (!mounted || !editor) return null;
+    const handleUpdate = () => {
+      if (fileId) {
+        debouncedAutoSave();
+      }
+    };
 
-  const toolbarButtons: ToolbarButton[] = [
+    editor.on('update', handleUpdate);
+
+    return () => {
+      editor.off('update', handleUpdate);
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [editor, fileId, debouncedAutoSave]);
+
+  if (!editor) return null;
+
+  const floatingToolbarButtons: ToolbarButton[] = [
     {
       id: 'bold',
       action: () => editor.chain().focus().toggleBold().run(),
@@ -157,7 +397,6 @@ export default function TiptapEditor() {
       ),
       label: 'Toggle Bold',
       isActive: () => editor.isActive('bold'),
-      disabled: () => !editor.can().chain().focus().toggleBold().run()
     },
     {
       id: 'italic',
@@ -171,7 +410,6 @@ export default function TiptapEditor() {
       ),
       label: 'Toggle Italic',
       isActive: () => editor.isActive('italic'),
-      disabled: () => !editor.can().chain().focus().toggleItalic().run()
     },
     {
       id: 'highlight',
@@ -184,7 +422,6 @@ export default function TiptapEditor() {
       ),
       label: 'Toggle Highlight',
       isActive: () => editor.isActive('highlight'),
-      disabled: () => !editor.can().chain().focus().toggleHighlight().run()
     },
     {
       id: 'code',
@@ -209,39 +446,45 @@ export default function TiptapEditor() {
       ),
       label: 'Toggle Strike',
       isActive: () => editor.isActive('strike'),
-      disabled: () => !editor.can().chain().focus().toggleStrike().run()
     },
+  ];
+
+  const fixedToolbarButtons: ToolbarButton[] = [
     {
-      id: 'bullet',
-      action: () => editor.chain().focus().toggleBulletList().run(),
+      id: 'undo',
+      action: () => editor.chain().focus().undo().run(),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="8" y1="6" x2="21" y2="6"></line>
-          <line x1="8" y1="12" x2="21" y2="12"></line>
-          <line x1="8" y1="18" x2="21" y2="18"></line>
-          <circle cx="3" cy="6" r="2"></circle>
-          <circle cx="3" cy="12" r="2"></circle>
-          <circle cx="3" cy="18" r="2"></circle>
+          <path d="M3 7v6h6"></path>
+          <path d="M3 13c0-4.97 4.03-9 9-9 4.97 0 9 4.03 9 9s-4.03 9-9 9c-2.12 0-4.08-.74-5.62-1.97"></path>
         </svg>
       ),
-      label: 'Toggle Bullet List',
-      isActive: () => editor.isActive('bulletList'),
+      label: 'Undo',
+      disabled: () => !editor.can().undo(),
     },
     {
-      id: 'ordered',
-      action: () => editor.chain().focus().toggleOrderedList().run(),
+      id: 'redo',
+      action: () => editor.chain().focus().redo().run(),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="10" y1="6" x2="21" y2="6"></line>
-          <line x1="10" y1="12" x2="21" y2="12"></line>
-          <line x1="10" y1="18" x2="21" y2="18"></line>
-          <path d="M4 6h1v4"></path>
-          <path d="M4 10h2"></path>
-          <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path>
+          <path d="M21 7v6h-6"></path>
+          <path d="M21 13c0-4.97-4.03-9-9-9-4.97 0-9 4.03-9 9s4.03 9 9 9c2.12 0 4.08-.74 5.62-1.97"></path>
         </svg>
       ),
-      label: 'Toggle Ordered List',
-      isActive: () => editor.isActive('orderedList'),
+      label: 'Redo',
+      disabled: () => !editor.can().redo(),
+    },
+    {
+      id: 'clear',
+      action: () => editor.chain().focus().clearNodes().unsetAllMarks().run(),
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 6h18"></path>
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+        </svg>
+      ),
+      label: 'Clear Formatting',
     },
     {
       id: 'align-left',
@@ -295,293 +538,231 @@ export default function TiptapEditor() {
       label: 'Justify',
       isActive: () => editor.isActive({ textAlign: 'justify' }),
     },
-    {
-      id: 'h1',
-      action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-      icon: 'H1',
-      label: 'Heading 1',
-      isActive: () => editor.isActive('heading', { level: 1 }),
-      className: 'text-xs px-3'
-    },
-    {
-      id: 'h2',
-      action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-      icon: 'H2',
-      label: 'Heading 2',
-      isActive: () => editor.isActive('heading', { level: 2 }),
-      className: 'text-xs px-3'
-    },
-    {
-      id: 'h3',
-      action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
-      icon: 'H3',
-      label: 'Heading 3',
-      isActive: () => editor.isActive('heading', { level: 3 }),
-      className: 'text-xs px-3'
-    },
-    {
-      id: 'h4',
-      action: () => editor.chain().focus().toggleHeading({ level: 4 }).run(),
-      icon: 'H4',
-      label: 'Heading 4',
-      isActive: () => editor.isActive('heading', { level: 4 }),
-      className: 'text-xs px-3'
-    },
-    {
-      id: 'h5',
-      action: () => editor.chain().focus().toggleHeading({ level: 5 }).run(),
-      icon: 'H5',
-      label: 'Heading 5',
-      isActive: () => editor.isActive('heading', { level: 5 }),
-      className: 'text-xs px-3'
-    },
-    {
-      id: 'h6',
-      action: () => editor.chain().focus().toggleHeading({ level: 6 }).run(),
-      icon: 'H6',
-      label: 'Heading 6',
-      isActive: () => editor.isActive('heading', { level: 6 }),
-      className: 'text-xs px-3'
-    },
-    {
-      id: 'Undo',
-      action: () => editor.chain().focus().undo().run(),
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 7v6h6"></path>
-          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
-        </svg>
-      ),
-      label: 'Undo',
-      isActive: () => false,
-      disabled: () => !editor.can().chain().focus().undo().run()
-    },
-    {
-      id: 'Redo',
-      action: () => editor.chain().focus().redo().run(),
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 7v6h-6"></path>
-          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
-        </svg>
-      ),
-      label: 'Redo',
-      isActive: () => false,
-      disabled: () => !editor.can().chain().focus().redo().run(),
-    },
-    {
-      id: 'Horizontal Rule',
-      action: () => editor.chain().focus().setHorizontalRule().run(),
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-      ),
-      label: 'Horizontal Rule',
-      isActive: () => false,
-      disabled: () => false,
-    },
-    {
-      id: 'Clear Marks',
-      action: () => editor.chain().focus().unsetAllMarks().run(),
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 6L6 18"></path>
-          <path d="M6 6l12 12"></path>
-        </svg>
-      ),
-      label: 'Clear Marks',
-      isActive: () => false,
-      disabled: () => false,
-    },
-    {
-      id: 'Blockquote',
-      action: () => editor.chain().focus().toggleBlockquote().run(),
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
-          <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path>
-        </svg>
-      ),
-      label: 'Blockquote',
-      isActive: () => editor.isActive('blockquote'),
-      disabled: () => false,
-    },
   ];
-
 
   return (
     <div className="mx-auto my-6 max-w-7xl border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm dark:bg-gray-900">
-      {/* Fixed Save/Update Buttons */}
-      <div className="sticky top-0 z-[1] bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 p-2 flex justify-end gap-2">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          variant="primary"
-          size="sm"
-          type="button"
-          aria-label="Save as New File"
-          title="Save as New File"
-          className="dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
-          </svg>
-        </Button>
-        <Button
-          onClick={handleUpdate}
-          disabled={isSaving || !fileId}
-          variant="primary"
-          size="sm"
-          type="button"
-          aria-label="Update Existing File"
-          title="Update Existing File"
-          className="dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-        </Button>
+      {/* Auto-save Status Bar */}
+      <div className="sticky top-0 z-[1] bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 p-2">
+        <div className="flex items-center gap-2">
+          {fileId && (
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              {autoSaveStatus === 'saving' && (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Saving...</span>
+                </>
+              )}
+              {autoSaveStatus === 'saved' && (
+                <>
+                  <svg className="h-4 w-4 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span>All changes saved</span>
+                </>
+              )}
+              {autoSaveStatus === 'error' && (
+                <>
+                  <svg className="h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span>Error saving changes</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-        <div className="flex flex-wrap gap-4 p-4" role="toolbar" aria-label="Text formatting">
-          {/* Text Formatting */}
-          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Format</div>
-            <div className="flex gap-2">
-              {toolbarButtons.slice(0, 5).map(({ id, action, icon, label, isActive, disabled }) => {
-                const active = isActive?.();
-                const isDisabled = disabled?.();
-                return (
-                  <Button
-                    key={id}
-                    onClick={action}
-                    disabled={isDisabled}
-                    variant={active ? 'secondary' : 'primary'}
-                    size="sm"
-                    type="button"
-                    aria-label={label}
-                    title={label}
-                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
-                  >
-                    {icon}
-                  </Button>
-                );
-              })}
-            </div>
+      {/* Fixed Formatting Toolbar */}
+      <div className="sticky top-[41px] z-[1] bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 p-2">
+        <div className="flex flex-wrap gap-2">
+          {/* History and Clear Tools */}
+          <div className="flex items-center gap-2 border-r border-gray-300 dark:border-gray-700 pr-2">
+            {fixedToolbarButtons.slice(0, 3).map(({ id, action, icon, label, isActive, disabled }) => {
+              const active = isActive?.();
+              const isDisabled = disabled?.();
+              return (
+                <Button
+                  key={id}
+                  onClick={action}
+                  variant={active ? 'secondary' : 'primary'}
+                  size="sm"
+                  type="button"
+                  aria-label={label}
+                  title={label}
+                  disabled={isDisabled}
+                  className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {icon}
+                </Button>
+              );
+            })}
           </div>
-
-          {/* Lists */}
-          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Lists</div>
-            <div className="flex gap-2">
-              {toolbarButtons.slice(5, 7).map(({ id, action, icon, label, isActive, disabled }) => {
-                const active = isActive?.();
-                const isDisabled = disabled?.();
-                return (
-                  <Button
-                    key={id}
-                    onClick={action}
-                    disabled={isDisabled}
-                    variant={active ? 'secondary' : 'primary'}
-                    size="sm"
-                    type="button"
-                    aria-label={label}
-                    title={label}
-                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
-                  >
-                    {icon}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Alignment */}
-          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Alignment</div>
-            <div className="flex gap-2">
-              {toolbarButtons.slice(7, 11).map(({ id, action, icon, label, isActive, disabled }) => {
-                const active = isActive?.();
-                const isDisabled = disabled?.();
-                return (
-                  <Button
-                    key={id}
-                    onClick={action}
-                    disabled={isDisabled}
-                    variant={active ? 'secondary' : 'primary'}
-                    size="sm"
-                    type="button"
-                    aria-label={label}
-                    title={label}
-                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
-                  >
-                    {icon}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Headings */}
-          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Headings</div>
-            <div className="flex gap-2">
-              {toolbarButtons.slice(11, 17).map(({ id, action, icon, label, isActive, disabled, className }) => {
-                const active = isActive?.();
-                const isDisabled = disabled?.();
-                return (
-                  <Button
-                    key={id}
-                    onClick={action}
-                    disabled={isDisabled}
-                    variant={active ? 'secondary' : 'primary'}
-                    size="sm"
-                    type="button"
-                    aria-label={label}
-                    title={label}
-                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} ${className || ''}`}
-                  >
-                    {icon}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col items-center border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-900">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Actions</div>
-            <div className="flex gap-2">
-              {toolbarButtons.slice(17).map(({ id, action, icon, label, isActive, disabled }) => {
-                const active = isActive?.();
-                const isDisabled = disabled?.();
-                return (
-                  <Button
-                    key={id}
-                    onClick={action}
-                    disabled={isDisabled}
-                    variant={active ? 'secondary' : 'primary'}
-                    size="sm"
-                    type="button"
-                    aria-label={label}
-                    title={label}
-                    className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
-                  >
-                    {icon}
-                  </Button>
-                );
-              })}
-            </div>
+          
+          {/* Alignment Tools */}
+          <div className="flex items-center gap-2">
+            {fixedToolbarButtons.slice(3).map(({ id, action, icon, label, isActive }) => {
+              const active = isActive?.();
+              return (
+                <Button
+                  key={id}
+                  onClick={action}
+                  variant={active ? 'secondary' : 'primary'}
+                  size="sm"
+                  type="button"
+                  aria-label={label}
+                  title={label}
+                  className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
+                >
+                  {icon}
+                </Button>
+              );
+            })}
           </div>
         </div>
       </div>
+
+      {/* Floating Toolbar */}
+      {showToolbar && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 flex gap-2 transition-all duration-200 ease-in-out opacity-0 scale-95"
+          style={{
+            top: `${toolbarPosition.top}px`,
+            left: `${toolbarPosition.left}px`,
+            transform: 'translateX(-50%)',
+            animation: 'toolbarFadeIn 0.2s ease-out forwards',
+          }}
+        >
+          {floatingToolbarButtons.map(({ id, action, icon, label, isActive }) => {
+            const active = isActive?.();
+            return (
+              <Button
+                key={id}
+                onClick={action}
+                variant={active ? 'secondary' : 'primary'}
+                size="sm"
+                type="button"
+                aria-label={label}
+                title={label}
+                className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
+              >
+                {icon}
+              </Button>
+            );
+          })}
+
+          {/* Heading Dropdown */}
+          <div className="relative" data-heading-menu>
+            <Button
+              onClick={() => setShowHeadingMenu(!showHeadingMenu)}
+              variant={editor.isActive('heading') ? 'secondary' : 'primary'}
+              size="sm"
+              type="button"
+              aria-label="Headings"
+              title="Headings"
+              className={`${editor.isActive('heading') ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} flex items-center gap-1`}
+            >
+              H
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </Button>
+
+            {showHeadingMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[120px]">
+                {[1, 2, 3, 4, 5, 6].map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => handleHeadingClick(level)}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      editor.isActive('heading', { level }) ? 'bg-gray-100 dark:bg-gray-700' : ''
+                    }`}
+                  >
+                    {`Heading ${level}`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Color Dropdown */}
+          <div className="relative" data-color-menu>
+            <Button
+              onClick={() => setShowColorMenu(!showColorMenu)}
+              variant={editor.isActive('textStyle') ? 'secondary' : 'primary'}
+              size="sm"
+              type="button"
+              aria-label="Text Color"
+              title="Text Color"
+              className={`${editor.isActive('textStyle') ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} flex items-center gap-1`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5"></path>
+                <path d="M2 12l10 5 10-5"></path>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </Button>
+
+            {showColorMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[120px]">
+                {colorOptions.map(({ name, value }) => (
+                  <button
+                    key={value}
+                    onClick={() => handleColorChange(value)}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: value === 'inherit' ? 'transparent' : value }}></span>
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Highlight Dropdown */}
+          <div className="relative" data-highlight-menu>
+            <Button
+              onClick={() => setShowHighlightMenu(!showHighlightMenu)}
+              variant={editor.isActive('highlight') ? 'secondary' : 'primary'}
+              size="sm"
+              type="button"
+              aria-label="Highlight Color"
+              title="Highlight Color"
+              className={`${editor.isActive('highlight') ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} flex items-center gap-1`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 11l-6 6v3h9l3-3"></path>
+                <path d="M22 12l-4.586 4.586a2 2 0 0 1-2.828 0L9 13l3-3 4.586 4.586a2 2 0 0 1 0 2.828L22 12z"></path>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </Button>
+
+            {showHighlightMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[120px]">
+                {highlightOptions.map(({ name, value }) => (
+                  <button
+                    key={value}
+                    onClick={() => handleHighlightChange(value)}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: value }}></span>
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {saveMessage && (
         <div className={`px-4 py-2 text-sm ${saveMessage.includes('success') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -594,6 +775,19 @@ export default function TiptapEditor() {
         className="tiptap p-4 min-h-[200px] focus:outline-none dark:bg-gray-900 dark:text-gray-100"
         editor={editor}
       />
+
+      <style jsx global>{`
+        @keyframes toolbarFadeIn {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }

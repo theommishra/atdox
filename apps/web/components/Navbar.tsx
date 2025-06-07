@@ -8,14 +8,10 @@ import { useTheme } from "./ThemeProvider";
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { theme, toggleTheme } = useTheme();
-
-  const checkAuthStatus = () => {
-    const cookies = document.cookie;
-    const hasToken = cookies.includes("authorization");
-    setIsLoggedIn(hasToken);
-  };
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Check auth status on mount
     checkAuthStatus();
 
@@ -27,6 +23,12 @@ const Navbar = () => {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  const checkAuthStatus = () => {
+    const cookies = document.cookie;
+    const hasToken = cookies.includes("authorization");
+    setIsLoggedIn(hasToken);
+  };
 
   const handleSignOut = async () => {
     try {
@@ -44,7 +46,7 @@ const Navbar = () => {
   return (
     <header className="flex justify-between items-center p-6 border-b dark:border-gray-800">
       <Link href="/">
-        <h1 className="text-2xl font-bold">NotionClone</h1>
+        <h1 className="text-2xl font-bold">Atdox</h1>
       </Link>
 
       <div className="flex items-center space-x-4">
@@ -53,7 +55,7 @@ const Navbar = () => {
           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Toggle theme"
         >
-          {theme === 'light' ? (
+          {mounted && theme === 'light' ? (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
@@ -64,7 +66,7 @@ const Navbar = () => {
           )}
         </button>
 
-        {isLoggedIn ? (
+        {mounted && (isLoggedIn ? (
           <Button variant="secondary" onClick={handleSignOut}>
             Sign Out
           </Button>
@@ -79,7 +81,7 @@ const Navbar = () => {
               </Button>
             </Link>
           </>
-        )}
+        ))}
       </div>
     </header>
   );

@@ -15,7 +15,22 @@ export default function Projects() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isDeleting, setIsDeleting] = useState<number | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [newProjectName, setNewProjectName] = useState('');
     const router = useRouter();
+
+    const generateUniqueProjectName = (baseName: string): string => {
+        const existingNames = new Set(projects.map(p => p.name));
+        let newName = baseName;
+        let counter = 1;
+
+        while (existingNames.has(newName)) {
+            newName = `${baseName} (${counter})`;
+            counter++;
+        }
+
+        return newName;
+    };
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -130,9 +145,57 @@ export default function Projects() {
         }
     };
 
+    const handleCreateProject = async () => {
+        if (!newProjectName.trim()) {
+            return;
+        }
+
+        try {
+            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            
+            if (!token) {
+                console.error('No token found');
+                router.push('/');
+                return;
+            }
+
+            const uniqueName = generateUniqueProjectName(newProjectName.trim());
+
+            const response = await fetch('http://localhost:3002/createProject', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    tittle: uniqueName,
+                    data: '<p>Start writing your content here...</p>'
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to create project');
+            }
+
+            const data = await response.json();
+            if (data.fileId) {
+                router.push(`/editor?id=${data.fileId}`);
+            }
+        } catch (err) {
+            console.error('Error creating project:', err);
+            setError(err instanceof Error ? err.message : 'Failed to create project');
+        } finally {
+            setIsDialogOpen(false);
+            setNewProjectName('');
+        }
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-gray-50 dark:bg-[#1a1a1a] flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
         );
@@ -140,43 +203,77 @@ export default function Projects() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-gray-50 dark:bg-[#1a1a1a] flex items-center justify-center">
                 <div className="text-red-500">{error}</div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#1a1a1a] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">My Projects</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Projects</h1>
                     <button
-                        onClick={() => router.push('/editor')}
+                        onClick={() => setIsDialogOpen(true)}
                         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors"
                     >
                         New Project
                     </button>
                 </div>
 
+                {isDialogOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Create New Project</h2>
+                            <input
+                                type="text"
+                                value={newProjectName}
+                                onChange={(e) => setNewProjectName(e.target.value)}
+                                placeholder="Enter project name"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                autoFocus
+                            />
+                            <div className="mt-6 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setIsDialogOpen(false);
+                                        setNewProjectName('');
+                                    }}
+                                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCreateProject}
+                                    disabled={!newProjectName.trim()}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Create
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {projects.length === 0 ? (
                     <div className="text-center py-12">
-                        <h3 className="text-lg font-medium text-gray-900">No projects yet</h3>
-                        <p className="mt-2 text-gray-500">Create your first project to get started!</p>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No projects yet</h3>
+                        <p className="mt-2 text-gray-500 dark:text-gray-400">Create your first project to get started!</p>
                     </div>
                 ) : (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {projects.map((project) => (
                             <div
                                 key={project.id}
-                                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 relative group"
+                                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 relative group"
                             >
                                 <div 
                                     onClick={() => router.push(`/editor?id=${project.id}`)}
                                     className="cursor-pointer"
                                 >
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
-                                    <div className="text-sm text-gray-500">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{project.name}</h3>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">
                                         <p>Created: {formatDate(project.createdAt)}</p>
                                         <p>Last updated: {formatDate(project.updatedAt)}</p>
                                     </div>

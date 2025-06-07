@@ -11,7 +11,7 @@ export default function HomePage() {
           Your Notes, Organized <br /> and Always with You
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto">
-          A Notion-like workspace where you can write, plan, and collaborate. All in one place.
+          A modern workspace where you can write, plan, and collaborate. All in one place.
         </p>
 
         <Link href="/editor">
