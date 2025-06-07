@@ -135,7 +135,7 @@ export default function TiptapEditor() {
           return;
         }
 
-        const response = await fetch(`${backendUrl}/getProject/${fileId}`, {
+        const response = await fetch(`${backendUrl}/api/getProject/${fileId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -181,7 +181,7 @@ export default function TiptapEditor() {
           return;
         }
 
-        const response = await fetch(`${backendUrl}/createProject`, {
+        const response = await fetch(`${backendUrl}/api/createProject`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -262,7 +262,7 @@ export default function TiptapEditor() {
         return;
       }
 
-      const response = await fetch(`${backendUrl}/createProject`, {
+      const response = await fetch(`${backendUrl}/api/createProject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -311,7 +311,7 @@ export default function TiptapEditor() {
         return;
       }
 
-      const response = await fetch(`${backendUrl}/saveproject`, {
+      const response = await fetch(`${backendUrl}/api/saveproject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -388,7 +388,7 @@ export default function TiptapEditor() {
         return;
       }
 
-      const response = await fetch(`${backendUrl}/saveproject`, {
+      const response = await fetch(`${backendUrl}/api/saveproject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

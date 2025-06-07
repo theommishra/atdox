@@ -33,7 +33,7 @@ const Navbar = () => {
   const handleSignOut = async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-      await fetch(`${backendUrl}/signout`, {
+      await fetch(`${backendUrl}/api/signout`, {
         method: "POST",
         credentials: "include",
       });

@@ -10,15 +10,15 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [message, setMessage] = useState("");
     const loginWithGoogle = () => {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-        window.open(`${backendUrl}/auth/google`, "_self");
+        window.open(`${backendUrl}/api/auth/google`, "_self");
     };
 
 
     const handleAuth = async () => {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
         const endpoint = isSignin
-            ? `${backendUrl}/signin`
-            : `${backendUrl}/signup`;
+            ? `${backendUrl}/api/signin`
+            : `${backendUrl}/api/signup`;
 
         const payload = isSignin
             ? { email, password }
@@ -43,7 +43,7 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                 } else if (!isSignin && data.userId) {
                     // For signup, automatically sign in
                     try {
-                        const signinRes = await fetch("http://localhost:3002/signin", {
+                        const signinRes = await fetch(`${backendUrl}/api/signin`, {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",

@@ -45,7 +45,7 @@ export default function Projects() {
                 }
 
                 console.log('Fetching projects with token:', token);
-                const response = await fetch(`${backendUrl}/allprojects`, {
+                const response = await fetch(`${backendUrl}/api/allprojects`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -119,7 +119,7 @@ export default function Projects() {
             console.log('Attempting to delete project:', projectId);
             console.log('Using token:', token);
 
-            const response = await fetch(`${backendUrl}/deleteproject?id=${projectId}`, {
+            const response = await fetch(`${backendUrl}/api/deleteproject?id=${projectId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -164,7 +164,7 @@ export default function Projects() {
 
             const uniqueName = generateUniqueProjectName(newProjectName.trim());
 
-            const response = await fetch(`${backendUrl}/createProject`, {
+            const response = await fetch(`${backendUrl}/api/createProject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

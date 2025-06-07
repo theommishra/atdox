@@ -41,7 +41,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID as string,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-  callbackURL: "/auth/google/callback"
+  callbackURL: "/api/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => {
   return done(null, profile); // You can save to DB here
 }));
@@ -49,10 +49,10 @@ passport.use(new GoogleStrategy({
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user: any, done) => done(null, user));
 
-app.get("/auth/google",
+app.get("/api/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] }));
 
-app.get("/auth/google/callback",
+app.get("/api/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/" }),
   async (req, res) => {
     try {
@@ -115,7 +115,7 @@ app.get("/api/user", (req, res) => {
   res.send(req.user);
 });
 
-app.post("/signup", async (req, res) => {
+app.post("/api/signup", async (req, res) => {
     const parsedData = CreateUserSchema.safeParse(req.body);
     if (!parsedData.success) {
         console.log(parsedData.error)
@@ -144,7 +144,7 @@ app.post("/signup", async (req, res) => {
     }
 })
 
-app.post("/signin", async (req, res) => {
+app.post("/api/signin", async (req, res) => {
     const parsedData = SigninSchema.safeParse(req.body);
     if (!parsedData.success) {
         console.log(parsedData.error)
@@ -182,12 +182,12 @@ app.post("/signin", async (req, res) => {
     })
 })
 
-app.post("/signout", (req, res) => {
+app.post("/api/signout", (req, res) => {
   res.clearCookie("authorization");
   res.status(200).json({ message: "Signed out successfully" });
 });
 
-app.get("/allprojects", middleware, async (req: Request, res: Response) => {
+app.get("/api/allprojects", middleware, async (req: Request, res: Response) => {
     //@ts-ignore
     const userId = req.userId;
 
@@ -226,7 +226,7 @@ app.get("/allprojects", middleware, async (req: Request, res: Response) => {
     }
 });
 
-app.get("/getProject/:id", middleware, async (req: Request, res: Response) => {
+app.get("/api/getProject/:id", middleware, async (req: Request, res: Response) => {
     //@ts-ignore
     const userId = req.userId;
     const projectId = req.params?.id ? parseInt(req.params.id) : null;
@@ -280,7 +280,7 @@ app.get("/getProject/:id", middleware, async (req: Request, res: Response) => {
     }
 });
 
-app.post("/createProject", middleware, async (req: Request, res: Response): Promise<void> => {
+app.post("/api/createProject", middleware, async (req: Request, res: Response): Promise<void> => {
     const parsedData = CreateProjectSchema.safeParse(req.body);
     if (!parsedData.success) {
         res.status(400).json({
@@ -313,7 +313,7 @@ app.post("/createProject", middleware, async (req: Request, res: Response): Prom
     }
 });
 
-app.post("/saveproject", middleware, async (req: Request, res: Response): Promise<void> => {
+app.post("/api/saveproject", middleware, async (req: Request, res: Response): Promise<void> => {
     //@ts-ignore
     const userId = req.userId;
 
@@ -348,7 +348,7 @@ app.post("/saveproject", middleware, async (req: Request, res: Response): Promis
     }
 });
 
-app.delete("/deleteproject", middleware, async (req: Request, res: Response): Promise<void> => {
+app.delete("/api/deleteproject", middleware, async (req: Request, res: Response): Promise<void> => {
     //@ts-ignore
     const userId = req.userId;
     const projectId = parseInt(req.query.id as string);
@@ -381,7 +381,7 @@ app.delete("/deleteproject", middleware, async (req: Request, res: Response): Pr
 });
 
 //@ts-ignore
-app.post("/hitapi", async (req, res) => {
+app.post("/api/hitapi", async (req, res) => {
     const { prompt } = req.body;
 
     if (!prompt || typeof prompt !== 'string') {
