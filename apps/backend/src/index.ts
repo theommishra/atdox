@@ -14,7 +14,7 @@ const app = express();
 const cors = require('cors');
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:3000','https://atdox.vercel.app'],
+    origin: ['http://localhost:3000', 'https://atdox.vercel.app'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
@@ -45,8 +45,61 @@ app.get("/auth/google",
 
 app.get("/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/" }),
-  (req, res) => {
-    res.redirect(process.env.FRONTEND_URL as string);
+  async (req, res) => {
+    try {
+      const profile = req.user as any;
+      const googleEmail = profile.emails[0].value;
+      
+      // Check if user exists
+      let user = await prismaClient.user.findUnique({
+        where: {
+          email: googleEmail
+        }
+      });
+
+      // If user doesn't exist, create new user
+      if (!user) {
+        user = await prismaClient.user.create({
+          data: {
+            email: googleEmail,
+            name: profile.displayName,
+            password: "google-auth-" + Math.random().toString(36).slice(-8) // Random password for Google users
+          }
+        });
+        console.log("New user created:", user.email);
+      } else {
+        // Update existing user's information
+        user = await prismaClient.user.update({
+          where: {
+            email: googleEmail
+          },
+          data: {
+            name: profile.displayName,
+            // You might want to update other fields here if needed
+          }
+        });
+        console.log("Existing user signed in and updated:", user.email);
+      }
+
+      // Generate JWT token
+      const token = jwt.sign({
+        userId: user.id
+      }, JWT_SECRET);
+
+      // Set cookie
+      res.cookie("authorization", token, {
+        secure: false,
+        path: "/",
+      });
+
+      // Redirect with status parameter
+      const redirectUrl = process.env.FRONTEND_URL as string;
+      const status = user ? "signin" : "signup";
+      res.redirect(`${redirectUrl}?status=${status}`);
+    } catch (error) {
+      console.error("Error in Google auth callback:", error);
+      res.redirect(process.env.FRONTEND_URL as string + "?error=auth_failed");
+    }
   });
 
 app.get("/api/user", (req, res) => {
