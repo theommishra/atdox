@@ -14,7 +14,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import html2pdf from 'html2pdf.js';
 
 type ToolbarButton = {
   id: string;
@@ -447,6 +446,9 @@ export default function TiptapEditor() {
     if (!editor) return;
 
     try {
+      // Dynamically import html2pdf
+      const html2pdf = (await import('html2pdf.js')).default;
+      
       const content = editor.getHTML();
       const element = document.createElement('div');
       element.innerHTML = content;

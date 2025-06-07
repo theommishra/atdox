@@ -8,16 +8,15 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
-    
     const loginWithGoogle = () => {
-        window.open(`${API_URL}/auth/google`, "_self");
+        window.open("http://localhost:3002/auth/google", "_self");
     };
+
 
     const handleAuth = async () => {
         const endpoint = isSignin
-            ? `${API_URL}/signin`
-            : `${API_URL}/signup`;
+            ? "http://localhost:3002/signin"
+            : "http://localhost:3002/signup";
 
         const payload = isSignin
             ? { email, password }
@@ -42,7 +41,7 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                 } else if (!isSignin && data.userId) {
                     // For signup, automatically sign in
                     try {
-                        const signinRes = await fetch(`${API_URL}/signin`, {
+                        const signinRes = await fetch("http://localhost:3002/signin", {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
