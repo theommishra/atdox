@@ -127,6 +127,7 @@ export default function TiptapEditor() {
       if (!editor || !fileId || !mounted) return;
       
       try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
         const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
         
         if (!token) {
@@ -134,7 +135,7 @@ export default function TiptapEditor() {
           return;
         }
 
-        const response = await fetch(`http://localhost:3002/getProject/${fileId}`, {
+        const response = await fetch(`${backendUrl}/getProject/${fileId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -172,6 +173,7 @@ export default function TiptapEditor() {
       if (!editor || fileId || !mounted) return;
       
       try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
         const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
         
         if (!token) {
@@ -179,7 +181,7 @@ export default function TiptapEditor() {
           return;
         }
 
-        const response = await fetch('http://localhost:3002/createProject', {
+        const response = await fetch(`${backendUrl}/createProject`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -251,6 +253,7 @@ export default function TiptapEditor() {
     setSaveMessage('');
     
     try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
       const content = editor.getHTML();
       const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
       
@@ -259,7 +262,7 @@ export default function TiptapEditor() {
         return;
       }
 
-      const response = await fetch('http://localhost:3002/createProject', {
+      const response = await fetch(`${backendUrl}/createProject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -299,6 +302,7 @@ export default function TiptapEditor() {
     setSaveMessage('');
     
     try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
       const content = editor.getHTML();
       const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
       
@@ -307,7 +311,7 @@ export default function TiptapEditor() {
         return;
       }
 
-      const response = await fetch('http://localhost:3002/saveproject', {
+      const response = await fetch(`${backendUrl}/saveproject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -375,6 +379,7 @@ export default function TiptapEditor() {
     
     setAutoSaveStatus('saving');
     try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
       const content = editor.getHTML();
       const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
       
@@ -383,7 +388,7 @@ export default function TiptapEditor() {
         return;
       }
 
-      const response = await fetch('http://localhost:3002/saveproject', {
+      const response = await fetch(`${backendUrl}/saveproject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

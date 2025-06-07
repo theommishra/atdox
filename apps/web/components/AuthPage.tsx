@@ -9,14 +9,16 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const loginWithGoogle = () => {
-        window.open("http://localhost:3002/auth/google", "_self");
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+        window.open(`${backendUrl}/auth/google`, "_self");
     };
 
 
     const handleAuth = async () => {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
         const endpoint = isSignin
-            ? "http://localhost:3002/signin"
-            : "http://localhost:3002/signup";
+            ? `${backendUrl}/signin`
+            : `${backendUrl}/signup`;
 
         const payload = isSignin
             ? { email, password }

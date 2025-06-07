@@ -14,16 +14,25 @@ const app = express();
 const cors = require('cors');
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:3000','https://atdox.vercel.app'],
+    origin: [
+        'http://localhost:3000',
+        'https://atdox.vercel.app',
+        process.env.FRONTEND_URL
+    ].filter(Boolean),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET as string,
-  resave: false,
-  saveUninitialized: true,
+    secret: process.env.SESSION_SECRET as string,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
+    }
 }));
 
 app.use(passport.initialize());

@@ -35,6 +35,7 @@ export default function Projects() {
     useEffect(() => {
         const fetchProjects = async () => {
             try {
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
                 const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
                 
                 if (!token) {
@@ -44,7 +45,7 @@ export default function Projects() {
                 }
 
                 console.log('Fetching projects with token:', token);
-                const response = await fetch('http://localhost:3002/allprojects', {
+                const response = await fetch(`${backendUrl}/allprojects`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -106,6 +107,7 @@ export default function Projects() {
 
         setIsDeleting(projectId);
         try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
             const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
             
             if (!token) {
@@ -117,7 +119,7 @@ export default function Projects() {
             console.log('Attempting to delete project:', projectId);
             console.log('Using token:', token);
 
-            const response = await fetch(`http://localhost:3002/deleteproject?id=${projectId}`, {
+            const response = await fetch(`${backendUrl}/deleteproject?id=${projectId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -151,6 +153,7 @@ export default function Projects() {
         }
 
         try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
             const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
             
             if (!token) {
@@ -161,7 +164,7 @@ export default function Projects() {
 
             const uniqueName = generateUniqueProjectName(newProjectName.trim());
 
-            const response = await fetch('http://localhost:3002/createProject', {
+            const response = await fetch(`${backendUrl}/createProject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
