@@ -406,5 +406,7 @@ app.post("/api/hitapi", async (req, res) => {
 
 // console.log(process.env.GEMINI_API_KEY as string);
 
-
-app.listen(3002);
+const port = process.env.PORT || 3002;
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
