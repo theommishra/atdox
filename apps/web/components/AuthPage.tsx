@@ -10,6 +10,7 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [message, setMessage] = useState("");
     const loginWithGoogle = () => {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+        console.log('Backend URL:', backendUrl); // Debug log
         window.open(`${backendUrl}/api/auth/google`, "_self");
     };
 
