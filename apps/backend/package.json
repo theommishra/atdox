@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -b",
     "start": "node ./dist/index.js",
+    "postinstall": "pnpm --filter db generate",
     "dev": "npm run build && npm run start"
   },
   "dependencies": {
