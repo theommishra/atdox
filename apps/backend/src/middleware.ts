@@ -2,7 +2,12 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@repo/backend-common/config";
 
-export function middleware(req: Request, res: Response, next: NextFunction): void {
+// Extend Request interface to include userId
+interface AuthenticatedRequest extends Request {
+    userId?: number;
+}
+
+export function middleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
     try {
         console.log('=== MIDDLEWARE DEBUG ===');
         console.log('Request URL:', req.url);
