@@ -93,11 +93,11 @@ app.get("/api/auth/google/callback",
                 userId: user.id
             }, JWT_SECRET);
 
-            // Set cookie
-            res.cookie("authorization", token, {
-                secure: false,
-                path: "/",
-            });
+            // Don't set cookies - frontend will handle token storage
+            // res.cookie("authorization", token, {
+            //     secure: false,
+            //     path: "/",
+            // });
 
             // Redirect with status parameter
             const redirectUrl = process.env.FRONTEND_URL as string;
@@ -211,14 +211,13 @@ app.post("/api/signin", async (req, res) => {
     }
     const token = jwt.sign({
         userId: user?.id
-    }, JWT_SECRET);
-    
-    // Set cookie for same-domain requests
-    res.cookie("authorization", token, {
-        secure: true, // HTTPS only
-        sameSite: 'none', // Allow cross-site
-        path: "/",
-    });
+    }, JWT_SECRET);    
+    // Don't set cookies - frontend will store in localStorage
+    // res.cookie("authorization", token, {
+    //     secure: true, // HTTPS only
+    //     sameSite: 'none', // Allow cross-site
+    //     path: "/",
+    // });
 
     res.json({
         token,
