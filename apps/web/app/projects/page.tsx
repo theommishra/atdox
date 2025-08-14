@@ -46,7 +46,7 @@ export default function Projects() {
         const fetchProjects = async () => {
             try {
                 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-                const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+                const token = localStorage.getItem('authToken');
                 
                 if (!token) {
                     console.log('No token found, redirecting to home');
@@ -61,8 +61,7 @@ export default function Projects() {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
-                    },
-                    credentials: 'include'
+                    }
                 });
 
                 console.log('Response status:', response.status);
@@ -135,7 +134,7 @@ export default function Projects() {
         setIsDeleting(projectId);
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            const token = localStorage.getItem('authToken');
             
             if (!token) {
                 console.error('No token found');
@@ -152,8 +151,7 @@ export default function Projects() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
-                },
-                credentials: 'include'
+                }
             });
 
             console.log('Delete response status:', response.status);
@@ -183,15 +181,14 @@ export default function Projects() {
         setIsLoadingCollaborators(true);
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 setCollabError('Not authenticated');
                 return;
             }
             const res = await fetch(`${backendUrl}/api/projects/${projectId}/collaborators`, {
                 method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` },
-                credentials: 'include'
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) {
                 const txt = await res.text();
@@ -211,7 +208,7 @@ export default function Projects() {
         setCollabError('');
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 setCollabError('Not authenticated');
                 return;
@@ -222,7 +219,6 @@ export default function Projects() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include',
                 body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole })
             });
             if (!res.ok) {
@@ -242,7 +238,7 @@ export default function Projects() {
         setCollabError('');
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 setCollabError('Not authenticated');
                 return;
@@ -253,7 +249,6 @@ export default function Projects() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include',
                 body: JSON.stringify({ userId, role })
             });
             if (!res.ok) {
@@ -271,15 +266,14 @@ export default function Projects() {
         setCollabError('');
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 setCollabError('Not authenticated');
                 return;
             }
             const res = await fetch(`${backendUrl}/api/projects/${activeProjectId}/collaborators?userId=${userId}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
-                credentials: 'include'
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) {
                 const txt = await res.text();
@@ -298,7 +292,7 @@ export default function Projects() {
 
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            const token = localStorage.getItem('authToken');
             
             if (!token) {
                 console.error('No token found');
@@ -315,7 +309,6 @@ export default function Projects() {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                credentials: 'include',
                 body: JSON.stringify({
                     tittle: uniqueName,
                     data: '<p>Start writing your content here...</p>'
