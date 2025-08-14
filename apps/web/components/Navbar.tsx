@@ -29,10 +29,9 @@ const Navbar = () => {
     try {
       const response = await fetch(`${backendUrl}/api/me`, {
         method: 'GET',
-        credentials: 'include',
         headers: {
           'Authorization': (() => {
-            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            const token = localStorage.getItem('authToken');
             return token ? `Bearer ${token}` : '';
           })(),
         },
@@ -52,9 +51,10 @@ const Navbar = () => {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
       await fetch(`${backendUrl}/api/signout`, {
         method: "POST",
-        credentials: "include",
       });
-      // Force reload the page to ensure cookie is cleared
+      // Clear token from localStorage
+      localStorage.removeItem('authToken');
+      // Force reload the page
       window.location.href = "/";
     } catch (err) {
       console.error("Failed to log out", err);
