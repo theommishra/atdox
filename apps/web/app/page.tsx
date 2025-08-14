@@ -11,8 +11,28 @@ export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
-    setIsAuthenticated(!!token);
+    const checkAuth = () => {
+      const token = localStorage.getItem('authToken');
+      setIsAuthenticated(!!token);
+    };
+
+    // Check auth on mount
+    checkAuth();
+
+    // Listen for storage changes (when user signs in/out)
+    const handleStorageChange = () => {
+      checkAuth();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events (for same-tab auth changes)
+    window.addEventListener('authStateChanged', checkAuth);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authStateChanged', checkAuth);
+    };
   }, []);
 
   const handleCreateFile = () => {
@@ -33,9 +53,21 @@ export default function HomePage() {
           A modern workspace where you can write, plan, and collaborate. All in one place.
         </p>
 
-        <Button variant="primary" size="lg" onClick={handleCreateFile}>
-          Create your first File
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button variant="primary" size="lg" onClick={handleCreateFile}>
+            Create your first File
+          </Button>
+          
+          {isAuthenticated && (
+            <Button 
+              variant="secondary" 
+              size="lg" 
+              onClick={() => router.push('/projects')}
+            >
+              View Projects
+            </Button>
+          )}
+        </div>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8 px-6 py-16 max-w-6xl mx-auto">

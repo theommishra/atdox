@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "./Button";
 
 export function AuthPage({ isSignin }: { isSignin: boolean }) {
@@ -9,10 +9,26 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const loginWithGoogle = () => {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://atdox.onrender.com';
         console.log('Backend URL:', backendUrl); // Debug log
         window.open(`${backendUrl}/api/auth/google`, "_self");
     };
+
+    // Check for Google OAuth callback status
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        const error = urlParams.get('error');
+        
+        if (status === 'signin' || status === 'signup') {
+            // Google OAuth successful, check if we have a token
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Dispatch custom event for auth state change
+                window.dispatchEvent(new Event('authStateChanged'));
+            }
+        }
+    }, []);
 
 
     const handleAuth = async () => {
@@ -40,6 +56,8 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                 if (isSignin && data.token) {
                     // Store token in localStorage
                     localStorage.setItem('authToken', data.token);
+                    // Dispatch custom event for auth state change
+                    window.dispatchEvent(new Event('authStateChanged'));
                     // Direct redirect for signin
                     window.location.href = "/editor";
                 } else if (!isSignin && data.userId) {
@@ -57,6 +75,8 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                         if (signinRes.status === 200 && signinData.token) {
                             // Store token in localStorage
                             localStorage.setItem('authToken', signinData.token);
+                            // Dispatch custom event for auth state change
+                            window.dispatchEvent(new Event('authStateChanged'));
                             window.location.href = "/editor";
                         } else {
                             setMessage("Account created but failed to sign in. Please try signing in manually.");
