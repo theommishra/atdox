@@ -212,17 +212,18 @@ app.post("/api/signin", async (req, res) => {
     const token = jwt.sign({
         userId: user?.id
     }, JWT_SECRET);
+    
+    // Set cookie for same-domain requests
     res.cookie("authorization", token, {
-        // httpOnly: true,
-        secure: false, // only over HTTPS
-        // sameSite: "strict",
+        secure: true, // HTTPS only
+        sameSite: 'none', // Allow cross-site
         path: "/",
     });
 
-
     res.json({
-        token
-
+        token,
+        userId: user.id,
+        message: "Sign in successful"
     })
 });
 

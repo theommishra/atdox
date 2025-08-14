@@ -142,18 +142,17 @@ export default function TiptapEditor() {
       setLoadingFile(true);
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-        const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+                const token = localStorage.getItem('authToken');
         if (!token) {
-          setSaveMessage('Please sign in to load files');
-          setLoadingFile(false);
-          return;
+            setSaveMessage('Please sign in to load files');
+            setLoadingFile(false);
+            return;
         }
         const response = await fetch(`${backendUrl}/api/getProject/${fileId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include'
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -285,7 +284,7 @@ export default function TiptapEditor() {
     
     const fetchUserPermissions = async () => {
       try {
-        const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+        const token = localStorage.getItem('authToken');
         
         if (!token) {
           setUserRole('view');
@@ -302,8 +301,7 @@ export default function TiptapEditor() {
             const response = await fetch(`${backendUrl}/api/getProject/${fileId}`, {
               headers: {
                 'Authorization': `Bearer ${token}`
-              },
-              credentials: 'include'
+              }
             });
             
             if (response.ok) {
@@ -345,8 +343,7 @@ export default function TiptapEditor() {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include'
+            }
           });
           
           if (permissionsResponse.ok) {
@@ -468,11 +465,11 @@ export default function TiptapEditor() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
       const content = editor.getHTML();
-      const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
-      if (!token) {
-        setSaveMessage('Please sign in to save files');
-        return;
-      }
+              const token = localStorage.getItem('authToken');
+        if (!token) {
+            setSaveMessage('Please sign in to save files');
+            return;
+        }
       let response;
       if (fileId) {
         // Update existing file
@@ -482,7 +479,6 @@ export default function TiptapEditor() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          credentials: 'include',
           body: JSON.stringify({
             id: fileId,
             data: content,
@@ -497,7 +493,6 @@ export default function TiptapEditor() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          credentials: 'include',
           body: JSON.stringify({
             name: title,
             data: content
@@ -530,24 +525,23 @@ export default function TiptapEditor() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
       const content = editor.getHTML();
-      const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+      const token = localStorage.getItem('authToken');
       if (!token) {
         setSaveMessage('Please sign in to update files');
         return;
       }
-      const response = await fetch(`${backendUrl}/api/saveproject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          id: fileId,
-          data: content,
-          name: title
-        }),
-      });
+              const response = await fetch(`${backendUrl}/api/saveproject`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            id: fileId,
+            data: content,
+            name: title
+          }),
+        });
       if (!response.ok) {
         throw new Error('Failed to update');
       }
@@ -614,7 +608,7 @@ export default function TiptapEditor() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
       const content = editor.getHTML();
-      const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+      const token = localStorage.getItem('authToken');
       if (!token) {
         setAutoSaveStatus('error');
         return;
@@ -627,7 +621,6 @@ export default function TiptapEditor() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          credentials: 'include',
           body: JSON.stringify({
             id: fileId,
             data: content,
@@ -641,7 +634,6 @@ export default function TiptapEditor() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          credentials: 'include',
           body: JSON.stringify({
             name: title,
             data: content

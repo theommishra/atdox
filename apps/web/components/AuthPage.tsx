@@ -31,7 +31,6 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                credentials: "include",
                 body: JSON.stringify(payload),
             });
 
@@ -39,6 +38,8 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
 
             if (res.status === 200) {
                 if (isSignin && data.token) {
+                    // Store token in localStorage
+                    localStorage.setItem('authToken', data.token);
                     // Direct redirect for signin
                     window.location.href = "/editor";
                 } else if (!isSignin && data.userId) {
@@ -49,12 +50,13 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                             headers: {
                                 "Content-Type": "application/json",
                             },
-                            credentials: "include",
                             body: JSON.stringify({ email, password }),
                         });
 
                         const signinData = await signinRes.json();
                         if (signinRes.status === 200 && signinData.token) {
+                            // Store token in localStorage
+                            localStorage.setItem('authToken', signinData.token);
                             window.location.href = "/editor";
                         } else {
                             setMessage("Account created but failed to sign in. Please try signing in manually.");
