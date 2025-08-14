@@ -188,25 +188,24 @@ export default function TiptapEditor() {
       
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
-        const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
-        
-        if (!token) {
-          setSaveMessage('Please sign in to save files');
-          return;
-        }
+                 const token = localStorage.getItem('authToken');
+         
+         if (!token) {
+           setSaveMessage('Please sign in to save files');
+           return;
+         }
 
-        const response = await fetch(`${backendUrl}/api/createProject`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            name: title,
-            data: editor.getHTML()
-          }),
-        });
+                 const response = await fetch(`${backendUrl}/api/createProject`, {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${token}`
+           },
+           body: JSON.stringify({
+             name: title,
+             data: editor.getHTML()
+           }),
+         });
 
         if (!response.ok) {
           throw new Error('Failed to create initial file');
