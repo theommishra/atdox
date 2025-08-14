@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-area {
+            border: 2px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 200px;
+            background: #f9f9f9;
+        }
+        .selection-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        .toolbar {
+            position: fixed;
+            background: white;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1000;
+        }
+        .toolbar button {
+            margin: 2px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+        .toolbar button:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Selection Test</h1>
+    
+    <div class="selection-info">
+        <strong>Instructions:</strong>
+        <ol>
+            <li>Click and drag to select text in the test area below</li>
+            <li>A floating toolbar should appear above the selection</li>
+            <li>Try different selection methods: mouse drag, double-click, shift+arrow keys</li>
+        </ol>
+    </div>
+
+    <div class="test-area" id="testArea">
+        <h2>Sample Text for Selection Testing</h2>
+        <p>This is a paragraph with some text that you can select. Try selecting different parts of this text to see how the selection works.</p>
+        
+        <p>Here's another paragraph with more content. You can select words, sentences, or entire paragraphs. The selection should work smoothly and the toolbar should appear in the right position.</p>
+        
+        <p>You can also test selecting text across multiple paragraphs. Just click and drag from one paragraph to another to see how the selection extends.</p>
+        
+        <h3>Testing Different Text Elements</h3>
+        <ul>
+            <li>This is a list item that can be selected</li>
+            <li>Another list item for testing</li>
+            <li>And one more to ensure proper selection</li>
+        </ul>
+        
+        <p><strong>Bold text</strong> and <em>italic text</em> should also be selectable. Try selecting text that spans across different formatting.</p>
+    </div>
+
+    <div class="selection-info" id="selectionInfo">
+        <strong>Selection Info:</strong> No text selected
+    </div>
+
+    <div class="toolbar" id="toolbar">
+        <button onclick="alert('Bold clicked!')">B</button>
+        <button onclick="alert('Italic clicked!')">I</button>
+        <button onclick="alert('Underline clicked!')">U</button>
+        <button onclick="alert('Highlight clicked!')">H</button>
+    </div>
+
+    <script>
+        const testArea = document.getElementById('testArea');
+        const selectionInfo = document.getElementById('selectionInfo');
+        const toolbar = document.getElementById('toolbar');
+        let hideTimeout;
+
+        function updateSelectionInfo() {
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const text = selection.toString().trim();
+                
+                if (text) {
+                    selectionInfo.innerHTML = `
+                        <strong>Selection Info:</strong><br>
+                        Selected text: "${text}"<br>
+                        Text length: ${text.length} characters<br>
+                        Range start: ${range.startOffset}<br>
+                        Range end: ${range.endOffset}
+                    `;
+                    
+                    // Show toolbar
+                    showToolbar(range);
+                } else {
+                    selectionInfo.innerHTML = '<strong>Selection Info:</strong> No text selected';
+                    hideToolbar();
+                }
+            } else {
+                selectionInfo.innerHTML = '<strong>Selection Info:</strong> No text selected';
+                hideToolbar();
+            }
+        }
+
+        function showToolbar(range) {
+            // Get the bounding rectangle of the selection
+            const rect = range.getBoundingClientRect();
+            
+            // Position toolbar above the selection
+            const toolbarTop = Math.max(10, rect.top - 60);
+            const toolbarLeft = Math.max(10, Math.min(window.innerWidth - 200, rect.left + (rect.right - rect.left) / 2));
+            
+            toolbar.style.top = toolbarTop + 'px';
+            toolbar.style.left = toolbarLeft + 'px';
+            toolbar.style.display = 'block';
+            
+            // Clear existing timeout
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            
+            // Auto-hide after 30 seconds
+            hideTimeout = setTimeout(() => {
+                hideToolbar();
+            }, 30000);
+        }
+
+        function hideToolbar() {
+            toolbar.style.display = 'none';
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+                hideTimeout = null;
+            }
+        }
+
+        // Listen for selection changes
+        document.addEventListener('selectionchange', updateSelectionInfo);
+        
+        // Listen for mouse events
+        testArea.addEventListener('mouseup', updateSelectionInfo);
+        testArea.addEventListener('keyup', updateSelectionInfo);
+        
+        // Hide toolbar when clicking outside
+        document.addEventListener('mousedown', (e) => {
+            if (!testArea.contains(e.target) && !toolbar.contains(e.target)) {
+                hideToolbar();
+            }
+        });
+        
+        // Hide toolbar on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideToolbar();
+            }
+        });
+        
+        // Initial call
+        updateSelectionInfo();
+    </script>
+</body>
+</html>

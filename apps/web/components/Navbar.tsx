@@ -24,10 +24,27 @@ const Navbar = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const checkAuthStatus = () => {
-    const cookies = document.cookie;
-    const hasToken = cookies.includes("authorization");
-    setIsLoggedIn(hasToken);
+  const checkAuthStatus = async () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+    try {
+      const response = await fetch(`${backendUrl}/api/me`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Authorization': (() => {
+            const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+            return token ? `Bearer ${token}` : '';
+          })(),
+        },
+      });
+      if (response.ok) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    } catch (err) {
+      setIsLoggedIn(false);
+    }
   };
 
   const handleSignOut = async () => {

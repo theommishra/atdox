@@ -18,5 +18,26 @@ export const CreateProjectSchema = z.object({
 
 export const SaveProject = z.object({
     id:z.number(),
-    data: z.string()
+    data: z.string(),
+    name: z.string().optional()
 })
+
+// Collaborators
+export const CollaboratorRoleSchema = z.enum(["view", "edit"]);
+
+export const AddCollaboratorSchema = z.object({
+    projectId: z.number(),
+    email: z.string().email(),
+    role: CollaboratorRoleSchema
+});
+
+export const RemoveCollaboratorSchema = z.object({
+    projectId: z.number(),
+    userId: z.number()
+});
+
+export const UpdateCollaboratorRoleSchema = z.object({
+    projectId: z.number(),
+    userId: z.number(),
+    role: CollaboratorRoleSchema
+});

@@ -1,3 +1,44 @@
+/* Global selection improvements */
+* {
+  /* Ensure text selection works globally */
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Ensure editor container doesn't interfere with selection */
+.editor-container {
+  /* Allow text selection */
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  /* Ensure pointer events work */
+  pointer-events: auto;
+}
+
+/* Ensure floating toolbar doesn't interfere with selection */
+.floating-toolbar {
+  /* Don't interfere with text selection */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  /* But allow interaction with toolbar */
+  pointer-events: auto;
+}
+
+/* Ensure buttons and interactive elements don't interfere with text selection */
+button, .button, [role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
 .tiptap {
   /* Remove top margin from the first child (like a paragraph or heading) */
   :first-child {
@@ -13,17 +54,41 @@
     padding: 1rem;
     font-family: system-ui, sans-serif;
     line-height: 1.6;
+    /* Ensure text selection works properly */
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    /* Ensure pointer events work for selection */
+    pointer-events: auto;
+  }
+
+  /* Ensure text selection is visible and not interfered with */
+  ::selection {
+    background-color: #3b82f6;
+    color: white;
+  }
+  
+  ::-moz-selection {
+    background-color: #3b82f6;
+    color: white;
   }
 
   /* Paragraphs */
   p {
     margin: 0.5em 0;
+    /* Ensure paragraphs are selectable */
+    user-select: text;
+    pointer-events: auto;
   }
 
   /* Headings */
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     margin: 1em 0 0.5em;
+    /* Ensure headings are selectable */
+    user-select: text;
+    pointer-events: auto;
   }
 
   /* Bold/italic */
