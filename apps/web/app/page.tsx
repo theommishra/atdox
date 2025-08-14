@@ -36,11 +36,7 @@ export default function HomePage() {
   }, []);
 
   const handleCreateFile = () => {
-    if (isAuthenticated) {
-      router.push('/projects');
-    } else {
-      router.push('/signin');
-    }
+    router.push('/signin');
   };
 
   return (
@@ -54,13 +50,13 @@ export default function HomePage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button variant="primary" size="lg" onClick={handleCreateFile}>
-            Create your first File
-          </Button>
-          
-          {isAuthenticated && (
+          {!isAuthenticated ? (
+            <Button variant="primary" size="lg" onClick={handleCreateFile}>
+              Create your first File
+            </Button>
+          ) : (
             <Button 
-              variant="secondary" 
+              variant="primary" 
               size="lg" 
               onClick={() => router.push('/projects')}
             >
