@@ -20,5 +20,13 @@
   "dependencies": {
     "@tiptap/extension-color": "^2.14.0",
     "@tiptap/extension-text-style": "^2.14.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@tiptap/extension-horizontal-rule": "npm:@tiptap/extension-horizontal-rule@2.11.7",
+      "@tiptap/extension-image": "npm:@tiptap/extension-image@2.11.7",
+      "@tiptap/extension-subscript": "npm:@tiptap/extension-subscript@2.11.7",
+      "@tiptap/extension-superscript": "npm:@tiptap/extension-superscript@2.11.7"
+    }
   }
 }

@@ -45,6 +45,8 @@ export default function TiptapEditor() {
   const [isOwner, setIsOwner] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
 
   const editor = useEditor({
     extensions: [
@@ -82,6 +84,9 @@ export default function TiptapEditor() {
       autoSaveTimeoutRef.current = setTimeout(() => {
         autoSave();
       }, 1000);
+      
+      // Calculate word count
+      calculateWordCount();
     },
     onSelectionUpdate: ({ editor }) => {
       if (mode !== 'edit') return;
@@ -403,6 +408,53 @@ export default function TiptapEditor() {
     editor.setEditable(shouldBeEditable);
   }, [editor, effectiveMode, canEdit]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!editor || !canEdit) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle shortcuts when editor is focused
+      if (!editor.isFocused) return;
+      
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'b':
+            e.preventDefault();
+            editor.chain().focus().toggleBold().run();
+            break;
+          case 'i':
+            e.preventDefault();
+            editor.chain().focus().toggleItalic().run();
+            break;
+          case 'u':
+            e.preventDefault();
+            editor.chain().focus().toggleUnderline().run();
+            break;
+          case 'k':
+            e.preventDefault();
+            editor.chain().focus().toggleCode().run();
+            break;
+          case 's':
+            e.preventDefault();
+            handleSave();
+            break;
+          case 'z':
+            if (e.shiftKey) {
+              e.preventDefault();
+              editor.chain().focus().redo().run();
+            } else {
+              e.preventDefault();
+              editor.chain().focus().undo().run();
+            }
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [editor, canEdit]);
+
   const handleHeadingClick = (level: number) => {
     if (!editor) return;
     editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 }).run();
@@ -543,6 +595,17 @@ export default function TiptapEditor() {
     editor.chain().focus().setMark('textStyle', { color: '#000000' }).setHighlight({ color }).run();
     setShowHighlightMenu(false);
   };
+
+  const calculateWordCount = useCallback(() => {
+    if (!editor) return;
+    
+    const text = editor.getText();
+    const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+    const characters = text.length;
+    
+    setWordCount(words.length);
+    setCharCount(characters);
+  }, [editor]);
 
   // Auto-save functionality
   const autoSave = useCallback(async () => {
@@ -1027,6 +1090,22 @@ export default function TiptapEditor() {
                   )}
                 </div>
               )}
+              
+              {/* Word Count Display */}
+              <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-4 ml-auto">
+                <span className="flex items-center gap-1">
+                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {wordCount} words
+                </span>
+                <span className="flex items-center gap-1">
+                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                  </svg>
+                  {charCount} characters
+                </span>
+              </div>
             </div>
           </div>
         </div>

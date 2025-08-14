@@ -4,6 +4,12 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@tiptap/extension-horizontal-rule': npm:@tiptap/extension-horizontal-rule@2.11.7
+  '@tiptap/extension-image': npm:@tiptap/extension-image@2.11.7
+  '@tiptap/extension-subscript': npm:@tiptap/extension-subscript@2.11.7
+  '@tiptap/extension-superscript': npm:@tiptap/extension-superscript@2.11.7
+
 importers:
 
   .:

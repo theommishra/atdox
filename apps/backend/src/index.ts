@@ -9,54 +9,17 @@ import { prismaClient } from "@repo/db/client";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { Server as SocketIOServer } from "socket.io";
-import http from "http";
-
 const app = express();
 const cors = require('cors');
-const server = http.createServer(app);
-
-const io = new SocketIOServer(server, {
-    cors: {
-        origin: "http://localhost:3000", // your Next.js app
-        methods: ["GET", "POST"],
-    },
-});
-
-io.on("connection", (socket) => {
-    console.log("User connected", socket.id);
-
-    socket.on("joinFile", (fileId) => {
-        socket.join(`file-${fileId}`);
-    });
-
-
-    socket.on("editFile", async ({ fileId, newData }) => {
-        await prismaClient.file.update({
-            where: { id: fileId },
-            data: { data: newData }, // JSON content
-        });
-
-        socket.to(`file-${fileId}`).emit("fileUpdated", newData);
-    });
-
-
-    socket.on("disconnect", () => {
-        console.log("User disconnected", socket.id);
-    });
-});
 
 
 app.use(express.json());
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://atdox.vercel.app',
-        process.env.FRONTEND_URL
-    ].filter(Boolean),
+    origin: true, // Allow all origins for testing
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cookie'],
+    exposedHeaders: ['Set-Cookie']
 }));
 
 app.use(session({
