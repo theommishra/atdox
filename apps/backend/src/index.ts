@@ -27,9 +27,9 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
+        secure: true,
+        sameSite: 'none',
+        domain: '.vercel.app'
     }
 }));
 
