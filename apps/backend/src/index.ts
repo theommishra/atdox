@@ -58,40 +58,58 @@ app.get("/api/auth/google/callback",
             const googleEmail = profile.emails[0].value;
 
             // Check if user exists
+            console.log("Checking for existing user with email:", googleEmail);
             let user = await prismaClient.user.findUnique({
                 where: {
                     email: googleEmail
                 }
             });
 
+            let isNewUser = false;
+
             // If user doesn't exist, create new user
             if (!user) {
-                user = await prismaClient.user.create({
-                    data: {
-                        email: googleEmail,
-                        name: profile.displayName,
-                        password: "google-auth-" + Math.random().toString(36).slice(-8) // Random password for Google users
-                    }
-                });
-                console.log("New user created:", user.email);
+                console.log("User not found, creating new user...");
+                try {
+                    user = await prismaClient.user.create({
+                        data: {
+                            email: googleEmail,
+                            name: profile.displayName,
+                            password: "google-auth-" + Math.random().toString(36).slice(-8) // Random password for Google users
+                        }
+                    });
+                    isNewUser = true;
+                    console.log("✅ New user created successfully:", { id: user.id, email: user.email, name: user.name });
+                } catch (createError) {
+                    console.error("❌ Error creating user:", createError);
+                    throw createError;
+                }
             } else {
+                console.log("User found, updating existing user...");
                 // Update existing user's information
-                user = await prismaClient.user.update({
-                    where: {
-                        email: googleEmail
-                    },
-                    data: {
-                        name: profile.displayName,
-                        // You might want to update other fields here if needed
-                    }
-                });
-                console.log("Existing user signed in and updated:", user.email);
+                try {
+                    user = await prismaClient.user.update({
+                        where: {
+                            email: googleEmail
+                        },
+                        data: {
+                            name: profile.displayName,
+                            // You might want to update other fields here if needed
+                        }
+                    });
+                    console.log("✅ Existing user updated successfully:", { id: user.id, email: user.email, name: user.name });
+                } catch (updateError) {
+                    console.error("❌ Error updating user:", updateError);
+                    throw updateError;
+                }
             }
 
             // Generate JWT token
+            console.log("Generating JWT token for user:", user.id);
             const token = jwt.sign({
                 userId: user.id
             }, JWT_SECRET);
+            console.log("✅ JWT token generated successfully");
 
             // Don't set cookies - frontend will handle token storage
             // res.cookie("authorization", token, {
@@ -101,8 +119,9 @@ app.get("/api/auth/google/callback",
 
             // Redirect with status parameter
             const redirectUrl = process.env.FRONTEND_URL as string;
-            const status = user ? "signin" : "signup";
-            res.redirect(`${redirectUrl}?status=${status}`);
+            const status = isNewUser ? "signup" : "signin";
+            console.log(`🔄 Redirecting to: ${redirectUrl}?status=${status}&token=${token.substring(0, 20)}...`);
+            res.redirect(`${redirectUrl}?status=${status}&token=${token}`);
         } catch (error) {
             console.error("Error in Google auth callback:", error);
             res.redirect(process.env.FRONTEND_URL as string + "?error=auth_failed");
