@@ -11,28 +11,8 @@ export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('authToken');
-      setIsAuthenticated(!!token);
-    };
-
-    // Check auth on mount
-    checkAuth();
-
-    // Listen for storage changes (when user signs in/out)
-    const handleStorageChange = () => {
-      checkAuth();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom events (for same-tab auth changes)
-    window.addEventListener('authStateChanged', checkAuth);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('authStateChanged', checkAuth);
-    };
+    const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
+    setIsAuthenticated(!!token);
   }, []);
 
   const handleCreateFile = () => {

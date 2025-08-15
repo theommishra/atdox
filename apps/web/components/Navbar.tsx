@@ -54,8 +54,6 @@ const Navbar = () => {
       });
       // Clear token from localStorage
       localStorage.removeItem('authToken');
-      // Dispatch custom event for auth state change
-      window.dispatchEvent(new Event('authStateChanged'));
       // Force reload the page
       window.location.href = "/";
     } catch (err) {
