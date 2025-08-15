@@ -6,12 +6,12 @@ import { CreateUserSchema, SigninSchema, CreateProjectSchema, SaveProject, AddCo
 import { middleware } from "./middleware";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prismaClient } from "@repo/db/client";
-import session from "express-session";
-import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+const session = require("express-session");
+const passport = require("passport");
+const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
+
 const app = express();
 const cors = require('cors');
-
 
 app.use(express.json());
 app.use(cors({
@@ -40,21 +40,21 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID as string,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     callbackURL: "/api/auth/google/callback"
-}, (accessToken, refreshToken, profile, done) => {
+}, (accessToken: string, refreshToken: string, profile: any, done: any) => {
     return done(null, profile); // You can save to DB here
 }));
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user: any, done) => done(null, user));
+passport.serializeUser((user: any, done: any) => done(null, user));
+passport.deserializeUser((user: any, done: any) => done(null, user));
 
 app.get("/api/auth/google",
     passport.authenticate("google", { scope: ["profile", "email"] }));
 
 app.get("/api/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/" }),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         try {
-            const profile = req.user as any;
+            const profile = (req as any).user;
             const googleEmail = profile.emails[0].value;
 
             // Check if user exists
@@ -109,8 +109,8 @@ app.get("/api/auth/google/callback",
         }
     });
 
-app.get("/api/user", (req, res) => {
-    res.send(req.user);
+app.get("/api/user", (req: Request, res: Response) => {
+    res.send((req as any).user);
 });
 
 app.get("/api/user/permissions", middleware, async (req: Request, res: Response) => {
