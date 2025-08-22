@@ -1,6 +1,5 @@
 'use client';
 
-import './style.scss';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
@@ -14,6 +13,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import React from 'react';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
+import { useRouter } from 'next/navigation';
 
 type ToolbarButton = {
   id: string;
@@ -26,6 +26,7 @@ type ToolbarButton = {
 };
 
 export default function TiptapEditor() {
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [fileId, setFileId] = useState<number | null>(null);
@@ -77,13 +78,17 @@ export default function TiptapEditor() {
     content: '<p>Loading...</p>',
     editable: mode === 'edit',
     onUpdate: ({ editor }) => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
+      // Only set up auto-save for authenticated users
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+        setAutoSaveStatus('saving');
+        autoSaveTimeoutRef.current = setTimeout(() => {
+          autoSave();
+        }, 1000);
       }
-      setAutoSaveStatus('saving');
-      autoSaveTimeoutRef.current = setTimeout(() => {
-        autoSave();
-      }, 1000);
       
       // Calculate word count
       calculateWordCount();
@@ -144,8 +149,13 @@ export default function TiptapEditor() {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
                 const token = localStorage.getItem('authToken');
         if (!token) {
-            setSaveMessage('Please sign in to load files');
+            // For testing users, show a message about test mode
+            setSaveMessage('Test mode - loading demo content');
             setLoadingFile(false);
+            // Set some demo content for testing
+            editor.commands.setContent('<h1>Welcome to the Editor!</h1><p>This is a <strong>test document</strong> to help you explore all the editor features.</p><h2>Text Formatting</h2><p>You can make text <strong>bold</strong>, <em>italic</em>, <u>underlined</u>, and <s>strikethrough</s>.</p><p>Try <mark>highlighting text</mark> and changing <span style="color: #ef4444">text colors</span>.</p><h2>Lists and Structure</h2><ul><li>Bullet points</li><li>Numbered lists</li><li>Nested items</li></ul><h2>Code and Quotes</h2><p>Use <code>inline code</code> or create code blocks:</p><pre><code>function hello() {\n  console.log("Hello, World!");\n}</code></pre><blockquote><p>This is a blockquote for important information.</p></blockquote>');
+            setTitle('Test Document');
+            setAutoSaveStatus('saved');
             return;
         }
         const response = await fetch(`${backendUrl}/api/getProject/${fileId}`, {
@@ -191,7 +201,11 @@ export default function TiptapEditor() {
                  const token = localStorage.getItem('authToken');
          
          if (!token) {
-           setSaveMessage('Please sign in to save files');
+           // For testing users, set demo content and show test mode message
+           setSaveMessage('Test mode - changes are not saved to server');
+           setTitle('Test Document');
+           editor.commands.setContent('<h1>Welcome to the Editor!</h1><p>This is a <strong>test document</strong> to help you explore all the editor features.</p><h2>Text Formatting</h2><p>You can make text <strong>bold</strong>, <em>italic</em>, <u>underlined</u>, and <s>strikethrough</s>.</p><p>Try <mark>highlighting text</mark> and changing <span style="color: #ef4444">text colors</span>.</p><h2>Lists and Structure</h2><ul><li>Bullet points</li><li>Numbered lists</li><li>Nested items</li></ul><h2>Code and Quotes</h2><p>Use <code>inline code</code> or create code blocks:</p><pre><code>function hello() {\n  console.log("Hello, World!");\n}</code></pre><blockquote><p>This is a blockquote for important information.</p></blockquote>');
+           setAutoSaveStatus('saved');
            return;
          }
 
@@ -286,8 +300,10 @@ export default function TiptapEditor() {
         const token = localStorage.getItem('authToken');
         
         if (!token) {
-          setUserRole('view');
+          // For testing users without authentication, allow edit mode
+          setUserRole('edit');
           setIsOwner(false);
+          setIsLoading(false);
           return;
         }
 
@@ -609,7 +625,9 @@ export default function TiptapEditor() {
       const content = editor.getHTML();
       const token = localStorage.getItem('authToken');
       if (!token) {
-        setAutoSaveStatus('error');
+        // For testing users, show a different status
+        setAutoSaveStatus('saved');
+        setSaveMessage('Test mode - changes are not saved to server');
         return;
       }
       let response;
@@ -670,7 +688,9 @@ export default function TiptapEditor() {
     if (!editor) return;
 
     const handleUpdate = () => {
-      if (fileId) {
+      // Only auto-save if user is authenticated and has a file
+      const token = localStorage.getItem('authToken');
+      if (token && fileId) {
         debouncedAutoSave();
       }
     };
@@ -979,187 +999,287 @@ export default function TiptapEditor() {
   ];
 
   return (
-    <div className="mx-auto my-6 max-w-7xl border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm dark:bg-gray-900">
-      {/* Mode Toggle Button */}
-      <div className="flex justify-end p-4 border-b border-gray-300 dark:border-gray-700">
-        {canEdit && (
-          <button
-            onClick={() => setMode(mode === 'edit' ? 'view' : 'edit')}
-            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            {mode === 'edit' ? 'Switch to View Mode' : 'Switch to Edit Mode'}
-          </button>
-        )}
-        {!canEdit && (
-          <span className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-            Read-only mode
-          </span>
-        )}
-      </div>
-
-      {/* Role and Permission Display */}
-      <div className="px-4 py-2 border-b border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Role:</span>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-              isOwner 
-                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
-                : userRole === 'edit' 
-                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
-                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-            }`}>
-              {isOwner ? 'Owner' : userRole === 'edit' ? 'Editor' : 'Viewer'}
-            </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {userRole === 'view' ? 'Read-only access' : userRole === 'edit' ? 'Full editing access' : 'Owner with full control'}
-            </span>
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-[#0a0a0a] dark:via-[#1a1a1a] dark:to-[#0f172a] pt-28">
+      <div className="mx-auto max-w-7xl px-6">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              {mode === 'edit' ? 'Edit Document' : 'View Document'}
+            </h1>
+            
+            {/* Mode Toggle Button */}
+            {canEdit && (
+              <button
+                onClick={() => setMode(mode === 'edit' ? 'view' : 'edit')}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                {mode === 'edit' ? 'Switch to View Mode' : 'Switch to Edit Mode'}
+              </button>
+            )}
+            {!canEdit && (
+              <span className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                Read-only mode
+              </span>
+            )}
           </div>
-          {isLoading && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Loading permissions...</span>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Title Input or View Title */}
-      <div className={`fade-mode-switch ${mode === 'edit' ? 'fade-in' : 'fade-out'}`} key={mode+"-title"}>
-        {mode === 'edit' && canEdit ? (
-          <div className="p-4 border-b border-gray-300 dark:border-gray-700">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={autoSave}
-              placeholder="Document Title"
-              className="w-full text-2xl font-bold bg-transparent outline-none dark:text-white"
-            />
-          </div>
-        ) : (
-          <div className="p-4 border-b border-gray-300 dark:border-gray-700">
-            <h2 className="w-full text-2xl font-bold bg-transparent outline-none dark:text-white">{title}</h2>
-          </div>
-        )}
-      </div>
-
-      {/* Auto-save Status Bar (Edit Mode Only) */}
-      {mode === 'edit' && canEdit && (
-        <div className="fade-mode-switch fade-in" key="edit-status">
-          <div className="sticky top-0 z-[1] bg-white dark:bg-[#1a1a1a] border-b border-gray-300 dark:border-gray-700 p-2">
-            <div className="flex items-center gap-2">
-              {fileId && (
-                <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                  {autoSaveStatus === 'saving' && (
-                    <>
-                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Saving...</span>
-                    </>
-                  )}
-                  {autoSaveStatus === 'saved' && (
-                    <>
-                      <svg className="h-4 w-4 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>All changes saved</span>
-                    </>
-                  )}
-                  {autoSaveStatus === 'error' && (
-                    <>
-                      <svg className="h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                      <span>Error saving changes</span>
-                    </>
-                  )}
+          {/* Role and Permission Display */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Role:</span>
+                {!localStorage.getItem('authToken') ? (
+                  <>
+                    <span className="px-3 py-2 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                      Test User
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Test mode - full editing access (changes not saved)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className={`px-3 py-2 text-sm font-medium rounded-full ${
+                      isOwner 
+                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                        : userRole === 'edit' 
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    }`}>
+                      {isOwner ? 'Owner' : userRole === 'edit' ? 'Editor' : 'Viewer'}
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {userRole === 'view' ? 'Read-only access' : userRole === 'edit' ? 'Full editing access' : 'Owner with full control'}
+                    </span>
+                  </>
+                )}
+              </div>
+              {isLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Loading permissions...</span>
                 </div>
               )}
-              
-              {/* Word Count Display */}
-              <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-4 ml-auto">
-                <span className="flex items-center gap-1">
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  {wordCount} words
-                </span>
-                <span className="flex items-center gap-1">
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                  </svg>
-                  {charCount} characters
-                </span>
-              </div>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Fixed Formatting Toolbar (Edit Mode Only) */}
-      {mode === 'edit' && canEdit && (
-        <div className="fade-mode-switch fade-in" key="edit-toolbar">
-          <div className="sticky top-[41px] z-[1] bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 p-2">
-            <div className="flex flex-wrap gap-2">
-              {/* History and Clear Tools */}
-              <div className="flex items-center gap-2 border-r border-gray-300 dark:border-gray-700 pr-2">
-                {fixedToolbarButtons.slice(0, 4).map(({ id, action, icon, label, isActive, disabled }) => {
-                  const active = isActive?.();
-                  const isDisabled = disabled?.();
-                  return (
-                    <Button
-                      key={id}
-                      onClick={action}
-                      variant={active ? 'secondary' : 'primary'}
-                      size="sm"
-                      type="button"
-                      aria-label={label}
-                      title={label}
-                      disabled={isDisabled}
-                      className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {icon}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Alignment Tools */}
-              <div className="flex items-center gap-2">
-                {fixedToolbarButtons.slice(4).map(({ id, action, icon, label, isActive }) => {
-                  const active = isActive?.();
-                  return (
-                    <Button
-                      key={id}
-                      onClick={action}
-                      variant={active ? 'secondary' : 'primary'}
-                      size="sm"
-                      type="button"
-                      aria-label={label}
-                      title={label}
-                      className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
-                    >
-                      {icon}
-                    </Button>
-                  );
-                })}
+        {/* Test Mode Banner */}
+        {!localStorage.getItem('authToken') && (
+          <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-6">
+            <div className="flex items-center gap-3">
+              <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                  Test Mode Active
+                </h3>
+                <p className="text-yellow-700 dark:text-yellow-300">
+                  You're currently testing the editor. All features are available, but your changes won't be saved to the server. 
+                  <button 
+                    onClick={() => router.push('/signin')}
+                    className="ml-2 underline hover:no-underline font-medium"
+                  >
+                    Sign in to save your work
+                  </button>
+                </p>
               </div>
             </div>
           </div>
+        )}
+
+        {/* Main Editor Container */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Title Input or View Title */}
+          <div className={`fade-mode-switch ${mode === 'edit' ? 'fade-in' : 'fade-out'}`} key={mode+"-title"}>
+            {mode === 'edit' && canEdit ? (
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={autoSave}
+                  placeholder="Document Title"
+                  className="w-full text-3xl font-bold bg-transparent outline-none dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
+            ) : (
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="w-full text-3xl font-bold bg-transparent outline-none dark:text-white">{title}</h2>
+              </div>
+            )}
+          </div>
+
+          {/* Auto-save Status Bar (Edit Mode Only) */}
+          {mode === 'edit' && canEdit && (
+            <div className="fade-mode-switch fade-in" key="edit-status">
+              <div className="sticky top-0 z-[1] bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+                <div className="flex items-center gap-4">
+                  {!localStorage.getItem('authToken') && (
+                    <div className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                      <svg className="h-4 w-4 text-yellow-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <span>Test mode - changes not saved to server</span>
+                    </div>
+                  )}
+                  {fileId && (
+                    <div className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                      {autoSaveStatus === 'saving' && (
+                        <>
+                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Saving...</span>
+                        </>
+                      )}
+                      {autoSaveStatus === 'saved' && (
+                        <>
+                          <svg className="h-4 w-4 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span>All changes saved</span>
+                        </>
+                      )}
+                      {autoSaveStatus === 'error' && (
+                        <>
+                          <svg className="h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          <span>Error saving changes</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Word Count Display */}
+                  <div className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-6 ml-auto">
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {wordCount} words
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                      {charCount} characters
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+                     {/* Fixed Formatting Toolbar (Edit Mode Only) */}
+           {mode === 'edit' && canEdit && (
+             <div className="fade-mode-switch fade-in" key="edit-toolbar">
+               <div className="sticky top-[41px] z-[1] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
+                                   <div className="flex flex-wrap gap-3">
+                    {/* History and Clear Tools */}
+                    <div className="flex items-center gap-2 border-r border-gray-300 dark:border-gray-700 pr-4">
+                     {fixedToolbarButtons.slice(0, 4).map(({ id, action, icon, label, isActive, disabled }) => {
+                       const active = isActive?.();
+                       const isDisabled = disabled?.();
+                       return (
+                         <Button
+                           key={id}
+                           onClick={action}
+                           variant={active ? 'secondary' : 'primary'}
+                           size="sm"
+                           type="button"
+                           aria-label={label}
+                           title={label}
+                           disabled={isDisabled}
+                           className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                         >
+                           {icon}
+                         </Button>
+                       );
+                     })}
+                   </div>
+
+                  {/* Alignment Tools */}
+                  <div className="flex items-center gap-2">
+                    {fixedToolbarButtons.slice(4).map(({ id, action, icon, label, isActive }) => {
+                      const active = isActive?.();
+                      return (
+                        <Button
+                          key={id}
+                          onClick={action}
+                          variant={active ? 'secondary' : 'primary'}
+                          size="sm"
+                          type="button"
+                          aria-label={label}
+                          title={label}
+                          className={`${active ? 'is-active dark:bg-gray-700 dark:text-white dark:border-gray-600' : 'dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:border-gray-300'}`}
+                        >
+                          {icon}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Editor Content */}
+          <div className="p-6">
+            <EditorContent
+              className="tiptap min-h-[400px] focus:outline-none dark:text-gray-100 prose prose-lg max-w-none dark:prose-invert
+                [&_.tiptap]:outline-none [&_.tiptap]:min-h-[400px] [&_.tiptap]:p-4 [&_.tiptap]:font-sans [&_.tiptap]:leading-relaxed
+                [&_.tiptap_p]:my-2 [&_.tiptap_h1]:text-3xl [&_.tiptap_h1]:font-bold [&_.tiptap_h1]:my-4
+                [&_.tiptap_h2]:text-2xl [&_.tiptap_h2]:font-bold [&_.tiptap_h2]:my-3
+                [&_.tiptap_h3]:text-xl [&_.tiptap_h3]:font-bold [&_.tiptap_h3]:my-2
+                [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-6 [&_.tiptap_ul]:my-2
+                [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-6 [&_.tiptap_ol]:my-2
+                [&_.tiptap_li]:my-1 [&_.tiptap_blockquote]:border-l-4 [&_.tiptap_blockquote]:border-blue-500
+                [&_.tiptap_blockquote]:pl-4 [&_.tiptap_blockquote]:my-2 [&_.tiptap_blockquote]:italic
+                [&_.tiptap_code]:bg-gray-100 [&_.tiptap_code]:dark:bg-gray-800 [&_.tiptap_code]:px-2 [&_.tiptap_code]:py-1
+                [&_.tiptap_code]:rounded [&_.tiptap_code]:font-mono [&_.tiptap_code]:text-sm
+                [&_.tiptap_mark]:bg-yellow-200 [&_.tiptap_mark]:dark:bg-yellow-800 [&_.tiptap_mark]:px-1 [&_.tiptap_mark]:rounded"
+              editor={editor}
+            />
+          </div>
         </div>
-      )}
+
+        {/* Save Message */}
+        {saveMessage && (
+          <div className={`mt-6 p-4 rounded-xl text-sm ${
+            saveMessage.includes('success') 
+              ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border border-green-200 dark:border-green-800' 
+              : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800'
+          }`}>
+            {saveMessage}
+          </div>
+        )}
+
+        {/* View-only message for users without edit permissions */}
+        {!canEdit && (
+          <div className="mt-6 bg-white dark:bg-gray-800 rounded-2xl p-8 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+            <svg className="mx-auto h-16 w-16 mb-4 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <p className="text-xl font-medium mb-2">View-only Mode</p>
+            <p className="text-base">You have read-only access to this document. Contact the document owner to request editing permissions.</p>
+          </div>
+        )}
+      </div>
 
       {/* Floating Toolbar (Edit Mode Only) */}
       {mode === 'edit' && showToolbar && canEdit && (
         <div className="fade-mode-switch fade-in" key="edit-floating-toolbar">
           <div
-            className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 flex gap-2 transition-all duration-200 ease-in-out opacity-0 scale-95"
+            className="fixed z-50 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 flex gap-2 transition-all duration-200 ease-in-out opacity-0 scale-95"
             style={{
               top: `${toolbarPosition.top}px`,
               left: `${toolbarPosition.left}px`,
@@ -1203,12 +1323,12 @@ export default function TiptapEditor() {
               </Button>
 
               {showHeadingMenu && (
-                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[120px]">
+                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 min-w-[140px]">
                   {[1, 2, 3, 4, 5, 6].map((level) => (
                     <button
                       key={level}
                       onClick={() => handleHeadingClick(level)}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
                         editor.isActive('heading', { level }) ? 'bg-gray-100 dark:bg-gray-700' : ''
                       }`}
                     >
@@ -1241,12 +1361,12 @@ export default function TiptapEditor() {
               </Button>
 
               {showColorMenu && (
-                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[120px]">
+                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 min-w-[140px]">
                   {colorOptions.map(({ name, value }) => (
                     <button
                       key={value}
                       onClick={() => handleColorChange(value)}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-3"
                     >
                       <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: value === 'inherit' ? 'transparent' : value }}></span>
                       {name}
@@ -1277,12 +1397,12 @@ export default function TiptapEditor() {
               </Button>
 
               {showHighlightMenu && (
-                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[120px]">
+                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 min-w-[140px]">
                   {highlightOptions.map(({ name, value }) => (
                     <button
                       key={value}
                       onClick={() => handleHighlightChange(value)}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-3"
                     >
                       <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: value }}></span>
                       {name}
@@ -1295,56 +1415,149 @@ export default function TiptapEditor() {
         </div>
       )}
 
-      {saveMessage && (
-        <div className={`px-4 py-2 text-sm ${saveMessage.includes('success') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {saveMessage}
-        </div>
-      )}
+             <style jsx global>{`
+         @keyframes toolbarFadeIn {
+           from {
+             opacity: 0;
+             transform: translateX(-50%) translateY(10px) scale(0.95);
+           }
+           to {
+             opacity: 1;
+             transform: translateX(-50%) translateY(0) scale(1);
+           }
+         }
 
-      {/* Editor Content */}
-      <EditorContent
-        className="tiptap p-4 min-h-[200px] focus:outline-none dark:bg-gray-900 dark:text-gray-100"
-        editor={editor}
-      />
+         /* Essential editor tool styles */
+         .tiptap {
+           outline: none;
+           min-height: 200px;
+           padding: 1rem;
+           font-family: system-ui, sans-serif;
+           line-height: 1.6;
+         }
 
-      {/* View-only message for users without edit permissions */}
-      {!canEdit && (
-        <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-          <svg className="mx-auto h-12 w-12 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-          <p className="text-lg font-medium mb-2">View-only Mode</p>
-          <p className="text-sm">You have read-only access to this document. Contact the document owner to request editing permissions.</p>
-        </div>
-      )}
+         .tiptap p {
+           margin: 0.5em 0;
+         }
 
-      <style jsx global>{`
-        @keyframes toolbarFadeIn {
-          from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(10px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0) scale(1);
-          }
-        }
-      `}</style>
-      <style jsx>{`
-        .fade-mode-switch {
-          transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-          opacity: 1;
-        }
-        .fade-in {
-          opacity: 1;
-          pointer-events: auto;
-        }
-        .fade-out {
-          opacity: 0;
-          pointer-events: none;
-        }
-      `}</style>
+         .tiptap h1, .tiptap h2, .tiptap h3, .tiptap h4, .tiptap h5, .tiptap h6 {
+           font-weight: 600;
+           margin: 1em 0 0.5em;
+         }
+
+         .tiptap strong {
+           font-weight: bold;
+         }
+
+         .tiptap em {
+           font-style: italic;
+         }
+
+         .tiptap mark {
+           background-color: #ffe066;
+           padding: 0.1em 0.2em;
+           border-radius: 0.25em;
+         }
+
+         .tiptap code {
+           background-color: #f5f5f5;
+           font-family: 'Fira Code', monospace;
+           font-size: 0.9em;
+           padding: 0.2em 0.4em;
+           border-radius: 4px;
+         }
+
+         .tiptap s {
+           text-decoration: line-through;
+         }
+
+         .tiptap ul {
+           list-style-type: disc;
+           padding-left: 1.5rem;
+           margin: 1.25rem 1rem 1.25rem 0.4rem;
+         }
+
+         .tiptap ol {
+           list-style-type: decimal;
+           padding-left: 1.5rem;
+           margin: 1.25rem 1rem 1.25rem 0.4rem;
+         }
+
+         .tiptap li p {
+           margin-top: 0.25em;
+           margin-bottom: 0.25em;
+         }
+
+         .tiptap .text-left {
+           text-align: left;
+         }
+
+         .tiptap .text-center {
+           text-align: center;
+         }
+
+         .tiptap .text-right {
+           text-align: right;
+         }
+
+         .tiptap .text-justify {
+           text-align: justify;
+         }
+
+         /* Dark mode editor styles */
+         .dark .tiptap {
+           color: #e5e7eb;
+         }
+
+         .dark .tiptap code {
+           background-color: #374151;
+           color: #e5e7eb;
+         }
+
+         .dark .tiptap mark {
+           background-color: #fbbf24;
+           color: #000;
+         }
+
+         /* Button active states */
+         .is-active {
+           background-color: #3b82f6 !important;
+           color: white !important;
+         }
+
+         .dark .is-active {
+           background-color: #1d4ed8 !important;
+           color: white !important;
+         }
+
+         /* Download button styles */
+         .download-button svg {
+           width: 20px;
+           height: 20px;
+         }
+
+         .download-button:hover {
+           background-color: #f3f4f6;
+         }
+
+         .dark .download-button:hover {
+           background-color: #374151;
+         }
+       `}</style>
+       <style jsx>{`
+         .fade-mode-switch {
+           transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+           opacity: 1;
+         }
+         .fade-in {
+           opacity: 1;
+           pointer-events: auto;
+         }
+         .fade-out {
+           opacity: 0;
+           pointer-events: none;
+         }
+       `}</style>
     </div>
   );
 }
