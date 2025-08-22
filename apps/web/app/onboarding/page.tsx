@@ -14,6 +14,16 @@ export default function Onboarding() {
     }
   }, [router]);
 
+  const checkUserProjects = async () => {
+    try {
+      const projectsData = await api.getAllProjects();
+      return projectsData.projects && projectsData.projects.length > 0;
+    } catch (error) {
+      console.error('Error checking projects:', error);
+    }
+    return false;
+  };
+
   const handleGetStarted = async () => {
     setLoading(true);
     try {
@@ -23,12 +33,22 @@ export default function Onboarding() {
         data: 'Welcome to NotE! This is your first project. Start editing to create amazing content.'
       });
       
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Check if user has other projects and redirect accordingly
+      const hasProjects = await checkUserProjects();
+      if (hasProjects) {
+        router.push('/projects');
+      } else {
+        router.push('/editor');
+      }
     } catch (error) {
       console.error('Error creating welcome project:', error);
-      // Still redirect to dashboard even if project creation fails
-      router.push('/dashboard');
+      // Still redirect appropriately even if project creation fails
+      const hasProjects = await checkUserProjects();
+      if (hasProjects) {
+        router.push('/projects');
+      } else {
+        router.push('/editor');
+      }
     } finally {
       setLoading(false);
     }
@@ -91,7 +111,7 @@ export default function Onboarding() {
           </button>
           
           <p className="text-xs text-gray-500 mt-4">
-            You can always access your projects from the dashboard
+            You can always access your projects from the projects page
           </p>
         </div>
       </div>

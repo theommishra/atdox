@@ -9,14 +9,57 @@ import { useEffect, useState } from "react";
 export default function HomePage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasProjects, setHasProjects] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = document.cookie.split('; ').find(row => row.startsWith('authorization='))?.split('=')[1];
-    setIsAuthenticated(!!token);
+    const checkAuthAndProjects = async () => {
+      const token = localStorage.getItem('authToken');
+      setIsAuthenticated(!!token);
+      
+      if (token) {
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+          const response = await fetch(`${backendUrl}/api/allprojects`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setHasProjects(data.projects && data.projects.length > 0);
+          }
+        } catch (error) {
+          console.error('Error checking projects:', error);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuthAndProjects();
   }, []);
 
-  const handleCreateFile = () => {
-    router.push('/signin');
+
+
+  const getButtonText = () => {
+    if (isLoading) return "Loading...";
+    if (!isAuthenticated) return "Create your first File";
+    if (hasProjects) return "View Your Projects";
+    return "Create your first File";
+  };
+
+  const handleButtonClick = () => {
+    if (!isAuthenticated) {
+      router.push('/signin');
+    } else if (hasProjects) {
+      router.push('/projects');
+    } else {
+      router.push('/editor');
+    }
   };
 
   return (
@@ -30,19 +73,14 @@ export default function HomePage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          {!isAuthenticated ? (
-            <Button variant="primary" size="lg" onClick={handleCreateFile}>
-              Create your first File
-            </Button>
-          ) : (
-            <Button 
-              variant="primary" 
-              size="lg" 
-              onClick={() => router.push('/projects')}
-            >
-              View Projects
-            </Button>
-          )}
+          <Button 
+            variant="primary" 
+            size="lg" 
+            onClick={handleButtonClick}
+            disabled={isLoading}
+          >
+            {getButtonText()}
+          </Button>
         </div>
       </section>
 

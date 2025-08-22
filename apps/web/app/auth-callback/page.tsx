@@ -1,11 +1,33 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
+
+  const checkUserProjects = async (token: string) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+      const response = await fetch(`${backendUrl}/api/allprojects`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.projects && data.projects.length > 0;
+      }
+    } catch (error) {
+      console.error('Error checking projects:', error);
+    }
+    return false;
+  };
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -29,12 +51,19 @@ export default function AuthCallback() {
         
         setStatus('success');
         
-        // Redirect based on status
-        setTimeout(() => {
+        // Check if user has projects and redirect accordingly
+        setTimeout(async () => {
           if (authStatus === 'signup') {
-            router.push('/onboarding'); // New user flow
+            // For new users, always go to onboarding first
+            router.push('/onboarding');
           } else {
-            router.push('/dashboard'); // Existing user flow
+            // For existing users, check if they have projects
+            const hasProjects = await checkUserProjects(token);
+            if (hasProjects) {
+              router.push('/projects');
+            } else {
+              router.push('/editor');
+            }
           }
         }, 1500);
       } catch (err) {
@@ -75,7 +104,7 @@ export default function AuthCallback() {
             </svg>
           </div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Authentication Successful!</h2>
-          <p className="text-gray-500">Redirecting you to your dashboard...</p>
+          <p className="text-gray-500">Redirecting you to your workspace...</p>
         </div>
       </div>
     );
@@ -98,4 +127,19 @@ export default function AuthCallback() {
   }
 
   return null;
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Loading...</h2>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
+  );
 }

@@ -8,12 +8,34 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+    
     const loginWithGoogle = () => {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
         console.log('Backend URL:', backendUrl); // Debug log
         window.open(`${backendUrl}/api/auth/google`, "_self");
     };
 
+    const checkUserProjects = async (token: string) => {
+        try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+            const response = await fetch(`${backendUrl}/api/allprojects`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                return data.projects && data.projects.length > 0;
+            }
+        } catch (error) {
+            console.error('Error checking projects:', error);
+        }
+        return false;
+    };
 
     const handleAuth = async () => {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
@@ -40,8 +62,13 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                 if (isSignin && data.token) {
                     // Store token in localStorage
                     localStorage.setItem('authToken', data.token);
-                    // Direct redirect for signin
-                    window.location.href = "/editor";
+                    // Check if user has projects and redirect accordingly
+                    const hasProjects = await checkUserProjects(data.token);
+                    if (hasProjects) {
+                        window.location.href = "/projects";
+                    } else {
+                        window.location.href = "/editor";
+                    }
                 } else if (!isSignin && data.userId) {
                     // For signup, automatically sign in
                     try {
@@ -57,7 +84,13 @@ export function AuthPage({ isSignin }: { isSignin: boolean }) {
                         if (signinRes.status === 200 && signinData.token) {
                             // Store token in localStorage
                             localStorage.setItem('authToken', signinData.token);
-                            window.location.href = "/editor";
+                            // Check if user has projects and redirect accordingly
+                            const hasProjects = await checkUserProjects(signinData.token);
+                            if (hasProjects) {
+                                window.location.href = "/projects";
+                            } else {
+                                window.location.href = "/editor";
+                            }
                         } else {
                             setMessage("Account created but failed to sign in. Please try signing in manually.");
                             setPassword("");
