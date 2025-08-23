@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-200`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground transition-colors duration-200`}>
         <ThemeProvider>
           <Navbar />
           {children}
